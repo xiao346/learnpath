@@ -12,10 +12,15 @@ const submitting = ref(false)
 const error = ref('')
 const sessionCorrect = ref(0)
 const finished = ref(false)
+const activeSubject = ref('全部')
 
-const currentQuestion = computed(() => questions.value[currentIndex.value])
-const progressPercent = computed(() => questions.value.length
-  ? Math.round(((currentIndex.value + (result.value ? 1 : 0)) / questions.value.length) * 100)
+const subjects = computed(() => ['全部', ...new Set(questions.value.map((question) => question.subject))])
+const filteredQuestions = computed(() => activeSubject.value === '全部'
+  ? questions.value
+  : questions.value.filter((question) => question.subject === activeSubject.value))
+const currentQuestion = computed(() => filteredQuestions.value[currentIndex.value])
+const progressPercent = computed(() => filteredQuestions.value.length
+  ? Math.round(((currentIndex.value + (result.value ? 1 : 0)) / filteredQuestions.value.length) * 100)
   : 0)
 
 async function loadPractice() {
@@ -54,7 +59,7 @@ async function submitAnswer() {
 }
 
 function nextQuestion() {
-  if (currentIndex.value >= questions.value.length - 1) {
+  if (currentIndex.value >= filteredQuestions.value.length - 1) {
     finished.value = true
     return
   }
@@ -62,6 +67,11 @@ function nextQuestion() {
   selectedOption.value = ''
   result.value = null
   error.value = ''
+}
+
+function selectSubject(subject: string) {
+  activeSubject.value = subject
+  restart()
 }
 
 function restart() {
@@ -100,22 +110,26 @@ onMounted(loadPractice)
       </div>
     </div>
 
+    <nav v-if="questions.length" class="subject-filter glass-card" aria-label="练习科目">
+      <button v-for="subject in subjects" :key="subject" type="button" :class="{ active: activeSubject === subject }" @click="selectSubject(subject)">{{ subject }}</button>
+    </nav>
+
     <div v-if="loading" class="state-card glass-card"><span class="loader"></span><p>正在准备今日练习…</p></div>
     <div v-else-if="error && !questions.length" class="state-card glass-card"><strong>练习舱暂时无法启动</strong><p>{{ error }}</p><button @click="loadPractice">重新加载</button></div>
     <div v-else-if="!questions.length" class="state-card glass-card"><strong>题库正在补充中</strong><p>稍后再来看看吧。</p></div>
 
     <section v-else-if="finished" class="practice-summary glass-card">
-      <div class="summary-orbit"><strong>{{ sessionCorrect }}/{{ questions.length }}</strong><span>本轮答对</span></div>
+      <div class="summary-orbit"><strong>{{ sessionCorrect }}/{{ filteredQuestions.length }}</strong><span>本轮答对</span></div>
       <span class="eyebrow"><i></i> TRAINING COMPLETE</span>
       <h3>本轮练习完成</h3>
-      <p>{{ sessionCorrect === questions.length ? '全对！你的知识网络非常稳固。' : '解析已经记录，趁热再来一轮巩固薄弱点吧。' }}</p>
+      <p>{{ sessionCorrect === filteredQuestions.length ? '全对！你的知识网络非常稳固。' : '解析已经记录，趁热再来一轮巩固薄弱点吧。' }}</p>
       <button @click="restart">重新练习</button>
     </section>
 
     <div v-else class="practice-layout">
       <section class="question-card glass-card">
         <div class="question-progress">
-          <div><span>练习进度</span><strong>{{ currentIndex + 1 }} / {{ questions.length }}</strong></div>
+          <div><span>练习进度</span><strong>{{ currentIndex + 1 }} / {{ filteredQuestions.length }}</strong></div>
           <div class="progress-track"><i :style="{ width: `${progressPercent}%` }"></i></div>
         </div>
         <div class="question-meta">
@@ -146,7 +160,7 @@ onMounted(loadPractice)
         <div class="question-actions">
           <small>{{ result ? '理解解析后继续下一题' : '选择你认为最准确的答案' }}</small>
           <button v-if="!result" :disabled="!selectedOption || submitting" @click="submitAnswer">{{ submitting ? '正在判分…' : '提交答案' }}</button>
-          <button v-else @click="nextQuestion">{{ currentIndex === questions.length - 1 ? '查看结果' : '下一题' }} →</button>
+          <button v-else @click="nextQuestion">{{ currentIndex === filteredQuestions.length - 1 ? '查看结果' : '下一题' }} →</button>
         </div>
       </section>
 
@@ -154,7 +168,7 @@ onMounted(loadPractice)
         <section class="glass-card"><span class="side-icon">◎</span><div><small>本轮表现</small><strong>{{ sessionCorrect }} 题正确</strong><p>已完成 {{ currentIndex + (result ? 1 : 0) }} 题</p></div></section>
         <section class="glass-card practice-tip"><span>答题提示</span><p>先排除明显错误选项，再比较剩余选项和题干中的关键词。</p></section>
         <div class="question-map">
-          <button v-for="(_, index) in questions" :key="index" :class="{ current: index === currentIndex, passed: index < currentIndex || (index === currentIndex && result) }" disabled>{{ index + 1 }}</button>
+          <button v-for="(_, index) in filteredQuestions" :key="index" :class="{ current: index === currentIndex, passed: index < currentIndex || (index === currentIndex && result) }" disabled>{{ index + 1 }}</button>
         </div>
       </aside>
     </div>

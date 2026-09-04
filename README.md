@@ -1,6 +1,6 @@
 # 知途 LearnPath
 
-面向大学生的智能学习平台毕业设计。当前版本包含蓝紫玻璃拟态登录页、学生学习工作台、课程中心、可持久化学习进度与在线练习，并提供基于 Redis 会话的 Java API。
+面向大学生的智能学习平台毕业设计。当前版本包含蓝紫玻璃拟态登录页、数据库驱动的学生学习工作台、课程中心、权威外部学习资源、可持久化学习进度与在线练习，并提供基于 Redis 会话的 Java API。
 
 ## 项目结构
 
@@ -27,15 +27,17 @@ study/
 
 ## DataGrip 连接
 
-在 DataGrip 中新建 MySQL 数据源，填写 Host `127.0.0.1`、Port `3306`、Database `learnpath`、User `learnpath`、Password `learnpath123`。测试连接成功后，在 Schemas 中勾选 `learnpath`，即可查看课程、用户、学习进度、练习题与答题记录。
+在 DataGrip 中新建 MySQL 数据源，填写 Host `127.0.0.1`、Port `3306`、Database `learnpath`、User `learnpath`、Password `learnpath123`。测试连接成功后，在 Schemas 中勾选 `learnpath`，即可查看课程、外部资源、学习任务、学习时长、用户、学习进度、练习题与答题记录。
 
 ## 当前接口
 
 - `POST /api/auth/login`：按学生、教师或管理员身份登录
 - `GET /api/auth/me`：读取当前登录用户
 - `POST /api/auth/logout`：退出并清理 Redis 会话
+- `GET /api/dashboard`：读取学习焦点、今日任务、本周趋势与个性化推荐
+- `POST /api/dashboard/tasks/{id}/toggle`：切换今日任务完成状态
 - `GET /api/courses`：读取课程列表，支持 `keyword` 与 `category` 查询参数
-- `GET /api/courses/{id}`：读取课程详情与章节状态
+- `GET /api/courses/{id}`：读取课程详情、章节状态与精选学习资源
 - `POST /api/courses/{id}/progress`：更新当前学生的课程进度
 - `GET /api/practice/questions`：读取练习题，可按 `subject` 筛选
 - `POST /api/practice/questions/{id}/submit`：提交答案并获取判分解析

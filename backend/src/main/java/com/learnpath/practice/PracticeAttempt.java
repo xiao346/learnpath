@@ -46,6 +46,7 @@ public class PracticeAttempt {
         this.pointsEarned = pointsEarned;
     }
 
+    public Long getUserId() { return userId; }
     public Long getQuestionId() { return questionId; }
     public boolean isCorrect() { return correct; }
     public int getPointsEarned() { return pointsEarned; }

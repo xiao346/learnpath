@@ -44,6 +44,7 @@ public class LearningProgress {
         this.lastStudiedAt = Instant.now();
     }
 
+    public Long getUserId() { return userId; }
     public Long getCourseId() { return courseId; }
     public int getCompletedLessons() { return completedLessons; }
     public Instant getLastStudiedAt() { return lastStudiedAt; }

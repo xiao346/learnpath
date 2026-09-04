@@ -4,6 +4,7 @@ import com.learnpath.course.CourseDtos.ChapterView;
 import com.learnpath.course.CourseDtos.CourseDetail;
 import com.learnpath.course.CourseDtos.CourseSummary;
 import com.learnpath.course.CourseDtos.ProgressView;
+import com.learnpath.course.CourseDtos.ResourceView;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,10 +19,13 @@ public class CourseService {
 
     private final CourseRepository courseRepository;
     private final LearningProgressRepository progressRepository;
+    private final CourseResourceRepository resourceRepository;
 
-    public CourseService(CourseRepository courseRepository, LearningProgressRepository progressRepository) {
+    public CourseService(CourseRepository courseRepository, LearningProgressRepository progressRepository,
+                         CourseResourceRepository resourceRepository) {
         this.courseRepository = courseRepository;
         this.progressRepository = progressRepository;
+        this.resourceRepository = resourceRepository;
     }
 
     @Transactional(readOnly = true)
@@ -60,13 +64,18 @@ public class CourseService {
                         chapter.getDurationMinutes(),
                         chapter.getOrderIndex() <= completedLessons))
                 .toList();
+        List<ResourceView> resources = resourceRepository.findByCourseIdOrderBySortOrderAsc(courseId).stream()
+                .map(resource -> new ResourceView(
+                        resource.getId(), resource.getTitle(), resource.getProvider(),
+                        resource.getResourceType(), resource.getDescription(), resource.getUrl()))
+                .toList();
 
         return new CourseDetail(
                 course.getId(), course.getTitle(), course.getSubtitle(), course.getCategory(),
                 course.getTeacherName(), course.getDescription(), course.getDifficulty(),
                 course.getDurationMinutes(), course.getChapters().size(), completedLessons,
                 percent(completedLessons, course.getChapters().size()), course.getAccent(), course.getIcon(),
-                progress == null ? null : progress.getLastStudiedAt(), chapters);
+                progress == null ? null : progress.getLastStudiedAt(), chapters, resources);
     }
 
     @Transactional

@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useDashboardStore } from '../stores/dashboard'
 
 const auth = useAuthStore()
+const dashboard = useDashboardStore()
 const router = useRouter()
 const displayName = computed(() => auth.user?.displayName ?? '同学')
 const avatarText = computed(() => displayName.value.slice(0, 1))
@@ -12,6 +14,15 @@ const greeting = computed(() => {
   return hour < 11 ? '早上好' : hour < 14 ? '中午好' : hour < 18 ? '下午好' : '晚上好'
 })
 async function logout() { await auth.logout(); await router.replace('/login') }
+const goalPercent = computed(() => dashboard.data?.weeklyGoalPercent ?? 0)
+const goalRemaining = computed(() => {
+  const minutes = dashboard.data?.weeklyRemainingMinutes ?? 0
+  if (minutes <= 0) return '本周学习目标已完成'
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  return `再学习 ${hours ? `${hours} 小时 ` : ''}${rest ? `${rest} 分钟` : ''}即可完成`
+})
+onMounted(() => dashboard.load())
 </script>
 
 <template>
@@ -27,7 +38,7 @@ async function logout() { await auth.logout(); await router.replace('/login') }
         <a class="nav-item disabled" href="#"><span>✦</span>智能推荐</a>
         <a class="nav-item disabled" href="#"><span>◒</span>学习报告</a>
       </nav>
-      <div class="sidebar-progress"><div><span>本周目标</span><strong>78%</strong></div><div class="progress-track"><i></i></div><small>再学习 2.2 小时即可完成</small></div>
+      <div class="sidebar-progress"><div><span>本周目标</span><strong>{{ goalPercent }}%</strong></div><div class="progress-track"><i :style="{ width: `${goalPercent}%` }"></i></div><small>{{ goalRemaining }}</small></div>
       <button class="logout-button" type="button" @click="logout">退出登录</button>
     </aside>
     <section class="dashboard-main">

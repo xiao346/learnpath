@@ -9,4 +9,5 @@ import java.util.Optional;
 public interface LearningProgressRepository extends JpaRepository<LearningProgress, Long> {
     Optional<LearningProgress> findByUserIdAndCourseId(Long userId, Long courseId);
     List<LearningProgress> findByUserIdAndCourseIdIn(Long userId, Collection<Long> courseIds);
+    List<LearningProgress> findByUserIdOrderByLastStudiedAtDesc(Long userId);
 }

@@ -41,11 +41,22 @@ public final class CourseDtos {
             String accent,
             String icon,
             Instant lastStudiedAt,
-            List<ChapterView> chapters
+            List<ChapterView> chapters,
+            List<ResourceView> resources
     ) {
     }
 
     public record ChapterView(Long id, String title, int orderIndex, int durationMinutes, boolean completed) {
+    }
+
+    public record ResourceView(
+            Long id,
+            String title,
+            String provider,
+            String resourceType,
+            String description,
+            String url
+    ) {
     }
 
     public record UpdateProgressRequest(@Min(value = 0, message = "完成课时不能小于0") int completedLessons) {

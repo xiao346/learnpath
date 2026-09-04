@@ -25,7 +25,25 @@ export type CourseSummary = {
 }
 
 export type Chapter = { id: number; title: string; orderIndex: number; durationMinutes: number; completed: boolean }
-export type CourseDetail = CourseSummary & { description: string; lastStudiedAt: string | null; chapters: Chapter[] }
+export type CourseResource = { id: number; title: string; provider: string; resourceType: string; description: string; url: string }
+export type CourseDetail = CourseSummary & { description: string; lastStudiedAt: string | null; chapters: Chapter[]; resources: CourseResource[] }
+
+export type DashboardFocus = { courseId: number; courseTitle: string; chapterTitle: string; estimatedMinutes: number; completedLessons: number; totalLessons: number; progressPercent: number }
+export type DashboardTask = { id: number; title: string; subject: string; estimatedMinutes: number; xpReward: number; completed: boolean }
+export type DashboardDay = { date: string; label: string; minutes: number; studied: boolean; today: boolean }
+export type DashboardTrend = { totalMinutes: number; previousWeekMinutes: number; changePercent: number; days: DashboardDay[] }
+export type DashboardRecommendation = { title: string; description: string; route: string }
+export type DashboardData = {
+  focus: DashboardFocus | null
+  streakDays: number
+  tasksCompleted: number
+  totalTasks: number
+  tasks: DashboardTask[]
+  trend: DashboardTrend
+  weeklyGoalPercent: number
+  weeklyRemainingMinutes: number
+  recommendation: DashboardRecommendation
+}
 
 export type PracticeOption = { key: string; text: string }
 export type PracticeQuestion = {
