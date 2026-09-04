@@ -59,12 +59,9 @@ export type KnowledgeAnalysis = {
   id: string
   title: string
   category: string
-  plainExplanation: string
-  whyItMatters: string
+  conclusion: string
   diagram: DiagramStep[]
   example: string
-  commonMistake: string
-  quickCheck: string
 }
 export type StudySection = { title: string; summary: string; points: string[] }
 

@@ -2,6 +2,8 @@
 import { onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, type ChapterLesson } from '../services/api'
+import ChapterKnowledgeMap from '../components/ChapterKnowledgeMap.vue'
+import KnowledgePointDiagram from '../components/KnowledgePointDiagram.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -91,33 +93,18 @@ watch(() => route.params.chapterId, loadLesson)
           </section>
 
           <section class="glass-card lesson-section learning-roadmap-section">
-            <div class="lesson-heading"><span>03</span><div><small>LEARNING ROADMAP</small><h3>本章知识路线：按顺序学会 6 件事</h3></div></div>
-            <div class="learning-roadmap">
-              <template v-for="(step, index) in lesson.learningPath" :key="step.id">
-                <article class="roadmap-step">
-                  <span>{{ String(index + 1).padStart(2, '0') }}</span>
-                  <div><small>{{ step.stage }}</small><h4>{{ step.title }}</h4><p>{{ step.detail }}</p></div>
-                </article>
-                <div v-if="index < lesson.learningPath.length - 1" class="roadmap-arrow" aria-hidden="true"><i>↓</i><small>理解后再往下</small></div>
-              </template>
-            </div>
+            <div class="lesson-heading"><span>03</span><div><small>KNOWLEDGE MAP</small><h3>本章知识总图</h3></div></div>
+            <ChapterKnowledgeMap :steps="lesson.learningPath" :title="lesson.chapterTitle" />
           </section>
 
           <section class="glass-card lesson-section analysis-section">
-            <div class="document-toolbar"><div class="lesson-heading"><span>04</span><div><small>DETAILED EXPLANATION</small><h3>逐个讲透：是什么、怎么用、哪里会错</h3></div></div><button type="button" @click="printDocument">打印 / 保存 PDF</button></div>
+            <div class="document-toolbar"><div class="lesson-heading"><span>04</span><div><small>KEY POINTS</small><h3>知识点、图解与示例</h3></div></div><button type="button" @click="printDocument">打印 / 保存 PDF</button></div>
             <div class="analysis-list">
               <article v-for="(item, index) in lesson.knowledgeAnalyses" :key="item.id" class="analysis-card">
                 <header><span>{{ String(index + 1).padStart(2, '0') }}</span><div><small>{{ item.category }}</small><h4>{{ item.title }}</h4></div></header>
-                <div class="explanation-block"><small>先用白话讲清楚</small><p>{{ item.plainExplanation }}</p></div>
-                <div class="explanation-block importance"><small>为什么必须学</small><p>{{ item.whyItMatters }}</p></div>
-                <div class="concept-diagram" :aria-label="`${item.title}图解`">
-                  <template v-for="(node, nodeIndex) in item.diagram" :key="`${item.id}-${nodeIndex}`">
-                    <div><small>{{ node.label }}</small><strong>{{ node.content }}</strong></div>
-                    <i v-if="nodeIndex < item.diagram.length - 1" aria-hidden="true">→</i>
-                  </template>
-                </div>
-                <div class="analysis-example"><span>例</span><div><small>放进例子里看</small><p>{{ item.example }}</p></div></div>
-                <div class="analysis-bottom"><div><small>⚠ 常见错误</small><p>{{ item.commonMistake }}</p></div><div><small>✓ 学完马上自测</small><p>{{ item.quickCheck }}</p></div></div>
+                <p class="knowledge-conclusion">{{ item.conclusion }}</p>
+                <KnowledgePointDiagram :id="`${lesson.chapterId}-${item.id}`" :title="item.title" :steps="item.diagram" />
+                <div class="analysis-example"><span>例</span><div><small>对应示例</small><p>{{ item.example }}</p></div></div>
               </article>
             </div>
           </section>

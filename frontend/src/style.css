@@ -339,6 +339,7 @@ a { color: inherit; text-decoration: none; }
 .analysis-card header > span { width: 35px; height: 35px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 10px; color: #83ddea; background: rgba(61,174,204,.11); font-size: 9px; }
 .analysis-card header small { color: #888fff; font-size: 8px; letter-spacing: .7px; }
 .analysis-card h4 { margin: 3px 0 0; color: #e1e6f9; font-size: 13px; }
+.knowledge-conclusion { margin: 15px 0 0; padding: 14px 16px; border-left: 3px solid #62ccdf; border-radius: 0 12px 12px 0; color: #d6def4; background: rgba(48,139,166,.09); font-size: 11px; line-height: 1.85; }
 .explanation-block { margin-top: 15px; padding: 14px 16px; border-radius: 12px; background: rgba(8,13,39,.34); }
 .explanation-block.importance { margin-top: 9px; border-left: 2px solid #5ac6d9; background: rgba(44,130,158,.08); }
 .explanation-block small, .analysis-example small, .analysis-bottom small { color: #82dcea; font-size: 9px; letter-spacing: .5px; }
@@ -493,6 +494,11 @@ a { color: inherit; text-decoration: none; }
 @keyframes bob { 50% { transform: translateY(-8px); } }
 @keyframes page-in { from { opacity: 0; transform: translateY(8px); } }
 
+@media (max-width: 1350px) {
+  .lesson-grid { grid-template-columns: 1fr; }
+  .lesson-side { position: static; grid-template-columns: 1fr 1fr; }
+}
+
 @media (max-width: 1100px) {
   .orbit-scene { opacity: .42; right: -40px; }
   .brand-panel { padding-left: 5vw; }
@@ -546,6 +552,7 @@ a { color: inherit; text-decoration: none; }
   .beginner-badge { align-items: flex-start; flex-wrap: wrap; }
   .beginner-badge small { width: 100%; margin-left: 15px; }
   .lesson-section { padding: 19px; }
+  .lesson-side { grid-template-columns: 1fr; }
   .practice-hero { min-height: 190px; padding: 23px; flex-direction: column; align-items: stretch; }
   .practice-hero h2 { font-size: 24px; }
   .practice-stats { width: 100%; }
@@ -570,6 +577,5 @@ a { color: inherit; text-decoration: none; }
   .lesson-hero, .lesson-section, .document-section, .self-check { color: #111; border: 1px solid #d8dbe6; background: white; box-shadow: none; break-inside: avoid; }
   .lesson-hero h2, .lesson-heading h3, .document-section h4 { color: #111; }
   .lesson-hero p, .section-intro, .document-section > p, .document-section li, .self-check ol { color: #333; }
-  .learning-roadmap-section { display: none; }
   .lesson-grid { display: block; }
 }

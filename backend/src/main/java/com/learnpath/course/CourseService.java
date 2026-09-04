@@ -216,17 +216,20 @@ public class CourseService {
             String point = points.get(index);
             analyses.add(new KnowledgeAnalysisView(
                     "analysis-" + (index + 1), conceptTitle(point), category(index),
-                    plainExplanation(point), whyItMatters(index), diagramSteps(point),
-                    relatedExample(index, guide, chapter.getPracticeTask()),
-                    commonMistake(point, index), quickCheck(point, index)));
+                    point, diagramSteps(point),
+                    relatedExample(index, guide, chapter.getPracticeTask(), point)));
         }
         return analyses;
     }
 
     private List<DiagramStepView> diagramSteps(String point) {
         List<String> parts = clauses(point);
+        if (parts.size() == 1) {
+            return List.of(
+                    new DiagramStepView("核心概念", conceptTitle(point)),
+                    new DiagramStepView("准确结论", point));
+        }
         String[] labels = switch (parts.size()) {
-            case 1 -> new String[]{"核心结论"};
             case 2 -> new String[]{"前提 / 对象", "规则 / 结果"};
             case 3 -> new String[]{"先看对象", "再看规则", "最后判断"};
             default -> new String[]{"对象", "条件", "处理", "边界"};
@@ -246,50 +249,12 @@ public class CourseService {
                 .toList();
     }
 
-    private String plainExplanation(String point) {
-        List<String> parts = clauses(point);
-        if (parts.size() == 1) {
-            return "核心结论是：“" + parts.get(0) + "”。理解时要能指出它处理的对象、采用的动作以及得到的结果。";
-        }
-        String rest = String.join("；", parts.subList(1, parts.size()));
-        return "这条知识分两层：先记住核心结论“" + parts.get(0) + "”；再理解它的条件、过程或边界——“" + rest
-                + "”。两层必须一起使用，不能只背前半句。";
-    }
-
-    private String whyItMatters(int index) {
+    private String relatedExample(int index, BeginnerLessonCatalog.Guide guide, String practiceTask, String point) {
+        String focus = conceptTitle(point);
         return switch (index % 3) {
-            case 0 -> "它负责回答“本章究竟在讨论什么”。这个概念没分清，后面的规则、步骤和例子都会混在一起。";
-            case 1 -> "它负责回答“具体应该怎样做、为什么这样做”。做题或写代码时，这通常就是选择处理方法的依据。";
-            default -> "它负责回答“什么时候可以用、什么时候会出错”。初学者最容易漏掉这一层，导致会背结论却不会判断场景。";
-        };
-    }
-
-    private String relatedExample(int index, BeginnerLessonCatalog.Guide guide, String practiceTask) {
-        return switch (index % 3) {
-            case 0 -> "生活中的对应：" + guide.analogy();
-            case 1 -> "放进完整案例：" + guide.example();
-            default -> "换到真实任务：" + practiceTask;
-        };
-    }
-
-    private String commonMistake(String point, int index) {
-        String title = conceptTitle(point);
-        if (point.matches(".*(不|不能|必须|只有|要求|适合|但|警惕).*")) {
-            return "不要忽略原句里的限制词。“" + title + "”不是在任何条件下都成立，使用前要逐项核对前提和边界。";
-        }
-        return switch (index % 3) {
-            case 0 -> "只记住“" + title + "”这个名称，却不能指出它对应的对象和作用。请回到上面的生活例子逐一对应。";
-            case 1 -> "看到熟悉题目就直接套方法，却没有写出中间步骤。结果即使碰巧正确，也无法判断规则是否真正用对。";
-            default -> "只验证正常情况，不检查空值、极端输入或条件变化。边界一变，原来的结论可能立即失效。";
-        };
-    }
-
-    private String quickCheck(String point, int index) {
-        String title = conceptTitle(point);
-        return switch (index % 3) {
-            case 0 -> "不用看原文，用一句话说明“" + title + "”是什么，并举出一个属于它的对象。";
-            case 1 -> "如果让你向同学演示“" + title + "”，第一步、第二步和最终结果分别是什么？";
-            default -> "给“" + title + "”换一个条件：它还成立吗？说出判断依据，而不是只回答“是”或“否”。";
+            case 0 -> guide.analogy() + " 对应知识点：“" + focus + "”。";
+            case 1 -> guide.example() + " 这里重点观察：“" + focus + "”。";
+            default -> practiceTask + " 完成时必须用“" + focus + "”核对结果。";
         };
     }
 
