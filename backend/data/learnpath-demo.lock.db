@@ -1,0 +1,6 @@
+#FileLock
+#Fri Sep 04 11:18:16 CST 2026
+hostName=XIAO
+id=1a06a6c7b5cc3fb4181b165a1e9dc6a723d17d6bc13
+method=file
+server=192.168.100.1\:51337

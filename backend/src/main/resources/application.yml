@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: learnpath-backend
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/learnpath?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&createDatabaseIfNotExist=true}
+    username: ${DB_USERNAME:learnpath}
+    password: ${DB_PASSWORD:learnpath123}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 3s
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+
+learnpath:
+  auth:
+    session-ttl: 2h
