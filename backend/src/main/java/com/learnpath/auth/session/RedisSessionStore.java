@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 
 @Component
-@Profile("!preview")
+@Profile("!test")
 public class RedisSessionStore implements SessionStore {
 
     private final StringRedisTemplate redisTemplate;

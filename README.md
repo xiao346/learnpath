@@ -13,17 +13,21 @@ study/
 
 ## 本地运行
 
-1. 启动 MySQL 和 Redis：有 Docker 时执行 `docker compose up -d`；当前 Windows 环境也可执行 `./scripts/start-redis.ps1` 启动项目本地 Redis 兼容服务
+1. 启动 MySQL 和 Redis：有 Docker 时执行 `docker compose up -d`；当前 Windows 环境可使用系统 MySQL 服务，并执行 `./scripts/start-redis.ps1` 启动项目本地 Redis 兼容服务
 2. 启动后端：进入 `backend` 后执行 `./mvnw spring-boot:run`
 3. 启动前端：进入 `frontend` 后执行 `npm run dev`
 
 前端默认地址为 `http://localhost:5173`，后端默认地址为 `http://localhost:8080`。
 
-当前本机演示可用 `./mvnw spring-boot:run -Dspring-boot.run.profiles=demo` 启动，使用本地 H2 文件保存业务数据，并使用真实 Redis 保存登录会话。
+默认数据库为 MySQL 8，数据库名、账号和密码分别为 `learnpath`、`learnpath`、`learnpath123`。如需使用其他凭证，请复制 `.env.example` 并通过环境变量覆盖；不要将真实密码提交到 Git。
 
-如果电脑暂时没有 MySQL 或 Redis，也可用 `./mvnw spring-boot:run -Dspring-boot.run.profiles=preview` 启动纯预览环境。该模式使用临时内存数据，关闭后即清空；正式开发仍使用 MySQL 和 Redis。
+首次安装时，请使用 MySQL 管理员账号执行 `scripts/init-mysql.sql`。脚本只创建项目数据库和最小权限项目账号，不包含管理员凭证。
 
 项目本地 Redis 基于 Memurai Developer，仅用于开发与测试；执行 `./scripts/stop-redis.ps1` 可安全停止并保存缓存数据。
+
+## DataGrip 连接
+
+在 DataGrip 中新建 MySQL 数据源，填写 Host `127.0.0.1`、Port `3306`、Database `learnpath`、User `learnpath`、Password `learnpath123`。测试连接成功后，在 Schemas 中勾选 `learnpath`，即可查看课程、用户、学习进度、练习题与答题记录。
 
 ## 当前接口
 

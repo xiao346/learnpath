@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-@Profile("preview")
+@Profile("test")
 public class InMemorySessionStore implements SessionStore {
 
     private final Map<String, SessionValue> sessions = new ConcurrentHashMap<>();

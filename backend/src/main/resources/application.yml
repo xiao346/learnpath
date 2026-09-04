@@ -18,6 +18,8 @@ spring:
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
       timeout: 3s
+      repositories:
+        enabled: false
   jackson:
     default-property-inclusion: non_null
 
