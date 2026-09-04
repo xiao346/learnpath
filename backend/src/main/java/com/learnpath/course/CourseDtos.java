@@ -61,10 +61,23 @@ public final class CourseDtos {
             String overview,
             List<String> objectives,
             List<String> keyPoints,
+            List<KnowledgeNodeView> knowledgeNodes,
+            List<KnowledgeEdgeView> knowledgeEdges,
+            List<StudySectionView> studySections,
+            List<String> selfCheckQuestions,
             String practiceTask,
             Long previousChapterId,
             Long nextChapterId
     ) {
+    }
+
+    public record KnowledgeNodeView(String id, String label, String category, String description) {
+    }
+
+    public record KnowledgeEdgeView(String source, String target, String relation) {
+    }
+
+    public record StudySectionView(String title, String summary, List<String> points) {
     }
 
     public record ResourceView(

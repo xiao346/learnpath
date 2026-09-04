@@ -47,6 +47,10 @@ function goToChapter(chapterId: number | null) {
   if (chapterId && lesson.value) router.push(`/courses/${lesson.value.courseId}/chapters/${chapterId}`)
 }
 
+function printDocument() {
+  window.print()
+}
+
 onMounted(loadLesson)
 watch(() => route.params.chapterId, loadLesson)
 </script>
@@ -69,13 +73,29 @@ watch(() => route.params.chapterId, loadLesson)
             <ul class="objective-list"><li v-for="objective in lesson.objectives" :key="objective"><i>✓</i><span>{{ objective }}</span></li></ul>
           </section>
 
-          <section class="glass-card lesson-section">
-            <div class="lesson-heading"><span>02</span><div><small>CORE NOTES</small><h3>核心知识讲解</h3></div></div>
-            <div class="knowledge-list"><article v-for="(point, index) in lesson.keyPoints" :key="point"><b>{{ String(index + 1).padStart(2, '0') }}</b><p>{{ point }}</p></article></div>
+          <section class="glass-card lesson-section knowledge-graph-section">
+            <div class="lesson-heading"><span>02</span><div><small>KNOWLEDGE GRAPH</small><h3>章节知识图谱</h3></div></div>
+            <p class="section-intro">从核心主题出发，沿着概念、原理、应用与实践关系建立完整知识网络，每个节点都附有详细说明。</p>
+            <div class="knowledge-graph">
+              <article class="graph-root"><small>{{ lesson.knowledgeNodes[0].category }}</small><strong>{{ lesson.knowledgeNodes[0].label }}</strong><p>{{ lesson.knowledgeNodes[0].description }}</p></article>
+              <div class="graph-branches">
+                <article v-for="(node, index) in lesson.knowledgeNodes.slice(1, -1)" :key="node.id" class="graph-node">
+                  <span>{{ lesson.knowledgeEdges[index]?.relation }}</span><small>{{ node.category }}</small><strong>{{ node.label }}</strong><p>{{ node.description }}</p>
+                </article>
+              </div>
+              <article class="graph-practice"><span>验证</span><small>{{ lesson.knowledgeNodes.at(-1)?.category }}</small><strong>{{ lesson.knowledgeNodes.at(-1)?.label }}</strong><p>{{ lesson.knowledgeNodes.at(-1)?.description }}</p></article>
+            </div>
+          </section>
+
+          <section class="glass-card lesson-section study-document">
+            <div class="document-toolbar"><div class="lesson-heading"><span>03</span><div><small>STUDY DOCUMENT</small><h3>章节精读文档</h3></div></div><button type="button" @click="printDocument">打印 / 保存 PDF</button></div>
+            <p class="section-intro">按“概念—原理—应用—复盘”的顺序精读。每完成一部分，用自己的例子复述一次。</p>
+            <article v-for="section in lesson.studySections" :key="section.title" class="document-section"><h4>{{ section.title }}</h4><p>{{ section.summary }}</p><ul><li v-for="point in section.points" :key="point">{{ point }}</li></ul></article>
+            <div class="self-check"><span>章末自测</span><ol><li v-for="question in lesson.selfCheckQuestions" :key="question">{{ question }}</li></ol></div>
           </section>
 
           <section class="glass-card lesson-section practice-task">
-            <div class="lesson-heading"><span>03</span><div><small>HANDS-ON TASK</small><h3>动手练习</h3></div></div>
+            <div class="lesson-heading"><span>04</span><div><small>HANDS-ON TASK</small><h3>动手练习</h3></div></div>
             <p>{{ lesson.practiceTask }}</p>
             <div class="task-tip"><span>验收标准</span><p>能够独立完成任务，并用自己的话解释关键步骤与结果；遇到错误时记录原因和修正方法。</p></div>
           </section>

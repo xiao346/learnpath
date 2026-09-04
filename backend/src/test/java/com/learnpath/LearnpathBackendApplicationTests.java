@@ -33,7 +33,7 @@ class LearnpathBackendApplicationTests {
 			course.getChapters().forEach(chapter -> {
 				assertThat(chapter.getOverview()).isNotBlank();
 				assertThat(chapter.getObjectives()).contains("\n");
-				assertThat(chapter.getKeyPoints().lines()).hasSizeGreaterThanOrEqualTo(3);
+				assertThat(chapter.getKeyPoints().lines()).hasSizeGreaterThanOrEqualTo(6);
 				assertThat(chapter.getPracticeTask()).isNotBlank();
 			});
 		});

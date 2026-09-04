@@ -85,6 +85,13 @@ public final class ChapterContentCatalog {
         return content;
     }
 
+    public static String expandedKeyPointsText(String chapterTitle) {
+        Content content = contentFor(chapterTitle);
+        java.util.ArrayList<String> points = new java.util.ArrayList<>(content.keyPoints());
+        points.addAll(ChapterKnowledgeExpansion.pointsFor(chapterTitle));
+        return String.join("\n", points);
+    }
+
     private static Map.Entry<String, Content> entry(String title, String foundation, String method,
                                                      String application, String practice) {
         String overview = "本节围绕“" + title + "”建立从概念理解到动手验证的完整学习路径。先理解原理，再通过例子和任务确认自己能够迁移应用。";

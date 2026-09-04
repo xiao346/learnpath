@@ -39,10 +39,17 @@ export type ChapterLesson = {
   overview: string
   objectives: string[]
   keyPoints: string[]
+  knowledgeNodes: KnowledgeNode[]
+  knowledgeEdges: KnowledgeEdge[]
+  studySections: StudySection[]
+  selfCheckQuestions: string[]
   practiceTask: string
   previousChapterId: number | null
   nextChapterId: number | null
 }
+export type KnowledgeNode = { id: string; label: string; category: string; description: string }
+export type KnowledgeEdge = { source: string; target: string; relation: string }
+export type StudySection = { title: string; summary: string; points: string[] }
 
 export type DashboardFocus = { courseId: number; courseTitle: string; chapterTitle: string; estimatedMinutes: number; completedLessons: number; totalLessons: number; progressPercent: number }
 export type DashboardTask = { id: number; title: string; subject: string; estimatedMinutes: number; xpReward: number; completed: boolean }

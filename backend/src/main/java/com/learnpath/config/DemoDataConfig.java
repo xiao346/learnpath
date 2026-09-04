@@ -206,7 +206,8 @@ public class DemoDataConfig {
         courses.findAllByPublishedTrueOrderByIdAsc().forEach(course -> {
             course.getChapters().forEach(chapter -> {
                 ChapterContentCatalog.Content content = ChapterContentCatalog.contentFor(chapter.getTitle());
-                chapter.updateLesson(content.overview(), content.objectivesText(), content.keyPointsText(), content.practiceTask());
+                chapter.updateLesson(content.overview(), content.objectivesText(),
+                        ChapterContentCatalog.expandedKeyPointsText(chapter.getTitle()), content.practiceTask());
             });
             courses.save(course);
         });
