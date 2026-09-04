@@ -50,6 +50,23 @@ public final class CourseDtos {
     public record ChapterView(Long id, String title, int orderIndex, int durationMinutes, boolean completed) {
     }
 
+    public record ChapterLessonView(
+            Long courseId,
+            String courseTitle,
+            Long chapterId,
+            String chapterTitle,
+            int orderIndex,
+            int durationMinutes,
+            boolean completed,
+            String overview,
+            List<String> objectives,
+            List<String> keyPoints,
+            String practiceTask,
+            Long previousChapterId,
+            Long nextChapterId
+    ) {
+    }
+
     public record ResourceView(
             Long id,
             String title,

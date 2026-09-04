@@ -28,6 +28,21 @@ export type CourseSummary = {
 export type Chapter = { id: number; title: string; orderIndex: number; durationMinutes: number; completed: boolean }
 export type CourseResource = { id: number; title: string; provider: string; resourceType: string; description: string; url: string }
 export type CourseDetail = CourseSummary & { description: string; lastStudiedAt: string | null; chapters: Chapter[]; resources: CourseResource[] }
+export type ChapterLesson = {
+  courseId: number
+  courseTitle: string
+  chapterId: number
+  chapterTitle: string
+  orderIndex: number
+  durationMinutes: number
+  completed: boolean
+  overview: string
+  objectives: string[]
+  keyPoints: string[]
+  practiceTask: string
+  previousChapterId: number | null
+  nextChapterId: number | null
+}
 
 export type DashboardFocus = { courseId: number; courseTitle: string; chapterTitle: string; estimatedMinutes: number; completedLessons: number; totalLessons: number; progressPercent: number }
 export type DashboardTask = { id: number; title: string; subject: string; estimatedMinutes: number; xpReward: number; completed: boolean }

@@ -1,6 +1,7 @@
 package com.learnpath.config;
 
 import com.learnpath.course.Course;
+import com.learnpath.course.ChapterContentCatalog;
 import com.learnpath.course.CourseRepository;
 import com.learnpath.course.CourseResource;
 import com.learnpath.course.CourseResourceRepository;
@@ -11,6 +12,7 @@ import com.learnpath.dashboard.StudySessionRepository;
 import com.learnpath.dashboard.StudyTask;
 import com.learnpath.dashboard.StudyTaskRepository;
 import com.learnpath.practice.PracticeQuestion;
+import com.learnpath.practice.ExpandedQuestionCatalog;
 import com.learnpath.practice.PracticeQuestionRepository;
 import com.learnpath.user.User;
 import com.learnpath.user.UserRepository;
@@ -23,6 +25,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
+import java.util.List;
 
 @Configuration
 public class DemoDataConfig {
@@ -158,7 +161,8 @@ public class DemoDataConfig {
                             .addChapter("自动化测试与持续集成", 5, 57)
                             .addChapter("版本发布实践", 6, 53)));
 
-            seedResources(courseRepository, resourceRepository, python, git);
+            seedChapterContent(courseRepository);
+            synchronizeChineseResources(courseRepository, resourceRepository);
 
             if (questionRepository.count() == 0) {
                 questionRepository.save(new PracticeQuestion(
@@ -191,162 +195,94 @@ public class DemoDataConfig {
             }
 
             seedAdditionalQuestions(questionRepository);
+            seedExpandedQuestions(questionRepository);
 
             User student = userRepository.findByAccountAndRole("20240001", UserRole.STUDENT).orElseThrow();
             seedDashboardData(student.getId(), taskRepository, sessionRepository);
         };
     }
 
-    private static void seedResources(CourseRepository courses, CourseResourceRepository resources,
-                                      Course python, Course git) {
-        courses.findByTitle("人工智能导论").ifPresent(course -> resources.findByCourseIdAndUrl(
-                course.getId(), "https://developers.google.com/machine-learning/resources/intro-responsible-ai")
-                .ifPresent(resources::delete));
-        courses.findByTitle("计算机网络").ifPresent(course -> resources.findByCourseIdAndUrl(
-                course.getId(), "https://cs144.github.io/").ifPresent(resources::delete));
-        addResource(courses, resources, "数据结构与算法", "OpenDSA 交互式教材", "Virginia Tech",
-                "互动教材", "包含数据结构和算法讲解、可视化与练习的开放教材。",
-                "https://opendsa-server.cs.vt.edu/", 1);
-        addResource(courses, resources, "数据结构与算法", "VisuAlgo 算法可视化", "VisuAlgo",
-                "可视化", "通过动画观察排序、树、图等算法的执行过程。",
-                "https://visualgo.net/zh", 2);
-        addResource(courses, resources, "数据库原理", "MySQL 8.0 参考手册", "Oracle MySQL",
-                "官方文档", "查询 SQL、事务、索引和数据库管理的权威参考资料。",
-                "https://dev.mysql.com/doc/refman/8.0/en/", 1);
-        addResource(courses, resources, "Java Web 应用开发", "Spring REST 服务指南", "Spring",
-                "官方教程", "从零构建并运行一个基于 Spring 的 RESTful Web 服务。",
-                "https://spring.io/guides/gs/rest-service/", 1);
-        addResource(courses, resources, "Java Web 应用开发", "HTTP 概述", "MDN Web Docs",
-                "参考资料", "系统理解 HTTP 消息、方法、状态码与连接管理。",
-                "https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Guides/Overview", 2);
-        addResource(courses, resources, "计算机网络", "TCP 标准 RFC 9293", "RFC Editor",
-                "协议标准", "TCP 协议当前规范，适合结合传输层章节查阅。",
-                "https://www.rfc-editor.org/rfc/rfc9293.html", 1);
-        addResource(courses, resources, "大学英语进阶", "Academic Writing", "Purdue OWL",
-                "写作指南", "覆盖论证、段落组织和学术写作基本规范。",
-                "https://owl.purdue.edu/owl/general_writing/academic_writing/index.html", 1);
-        addResource(courses, resources, "人工智能导论", "机器学习速成课程", "Google for Developers",
-                "互动课程", "通过模块、可视化和练习学习机器学习核心概念。",
-                "https://developers.google.com/machine-learning/crash-course", 1);
-        addResource(resources, python, "Python 官方教程", "Python Software Foundation", "官方教程",
-                "中文版 Python 教程，覆盖语言基础、数据结构、模块和异常。",
-                "https://docs.python.org/zh-cn/3/tutorial/", 1);
-        addResource(resources, git, "Pro Git 中文版", "Git SCM", "在线图书",
-                "完整讲解 Git 基础、分支、协作、工具与内部原理。",
-                "https://git-scm.com/book/zh/v2", 1);
-
-        addResource(courses, resources, "数据结构与算法", "MIT 6.006 算法导论", "MIT OpenCourseWare",
-                "完整课程", "按课程顺序学习数据结构、算法设计与复杂度分析；包含视频、讲义、测验和编程作业。",
-                "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/", 3);
-        addResource(courses, resources, "数据结构与算法", "6.006 练习与作业", "MIT OpenCourseWare",
-                "课后练习", "完成配套练习题与作业，用代码验证动态数组、排序、树、图和动态规划知识。",
-                "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/pages/assignments/", 4);
-        addResource(courses, resources, "数据结构与算法", "Algorithms for Competitive Programming", "CP-Algorithms",
-                "专题手册", "以专题方式复习图算法、字符串、数论和数据结构，并参考可运行的实现思路。",
-                "https://cp-algorithms.com/", 5);
-
-        addResource(courses, resources, "数据库原理", "MySQL 入门教程", "Oracle MySQL",
-                "入门教程", "从创建数据库和表开始练习查询、连接与常用 SQL，建议在 DataGrip 中同步操作。",
-                "https://dev.mysql.com/doc/refman/8.0/en/tutorial.html", 2);
-        addResource(courses, resources, "数据库原理", "SQL 语句参考", "Oracle MySQL",
-                "语法手册", "按 SELECT、INSERT、UPDATE、DDL 分类查阅语法，并为每类语句编写一个示例。",
-                "https://dev.mysql.com/doc/refman/8.0/en/sql-statements.html", 3);
-        addResource(courses, resources, "数据库原理", "InnoDB 事务模型", "Oracle MySQL",
-                "核心专题", "理解 ACID、自动提交、隔离级别和锁，使用两个连接复现实验现象。",
-                "https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-model.html", 4);
-        addResource(courses, resources, "数据库原理", "索引与查询优化", "Oracle MySQL",
-                "实践专题", "学习 B-Tree 索引与联合索引，使用 EXPLAIN 比较加索引前后的执行计划。",
-                "https://dev.mysql.com/doc/refman/8.0/en/optimization-indexes.html", 5);
-
-        addResource(courses, resources, "Java Web 应用开发", "使用 JPA 访问数据", "Spring",
-                "项目教程", "构建实体、仓库和数据访问层，把 REST 接口连接到关系数据库。",
-                "https://spring.io/guides/gs/accessing-data-jpa/", 3);
-        addResource(courses, resources, "Java Web 应用开发", "保护 Web 应用", "Spring",
-                "安全实践", "完成登录、路由保护与权限控制，理解认证和授权在 Web 项目中的边界。",
-                "https://spring.io/guides/gs/securing-web/", 4);
-        addResource(courses, resources, "Java Web 应用开发", "测试 Web 层", "Spring",
-                "测试实践", "使用 Spring Boot 测试工具验证控制器与应用上下文，为接口补齐自动化测试。",
-                "https://spring.io/guides/gs/testing-web/", 5);
-
-        addResource(courses, resources, "计算机网络", "IPv6 标准 RFC 8200", "RFC Editor",
-                "协议标准", "结合网络层章节理解 IPv6 首部、扩展首部和数据包转发规则。",
-                "https://www.rfc-editor.org/rfc/rfc8200.html", 2);
-        addResource(courses, resources, "计算机网络", "HTTP Semantics RFC 9110", "RFC Editor",
-                "协议标准", "查阅 HTTP 方法、状态码、缓存和内容协商的标准定义。",
-                "https://www.rfc-editor.org/rfc/rfc9110.html", 3);
-        addResource(courses, resources, "计算机网络", "Stanford CS144 计算机网络", "Stanford University",
-                "完整课程", "通过 TCP/IP 课程材料与网络协议栈实验，把分层协议知识落实到代码。",
-                "https://www.scs.stanford.edu/10au-cs144/", 4);
-        addResource(courses, resources, "计算机网络", "HTTP 工作原理", "MDN Web Docs",
-                "图解指南", "从客户端、代理、服务器和连接流程理解一次 Web 请求如何完成。",
-                "https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Guides/Overview", 5);
-
-        addResource(courses, resources, "大学英语进阶", "Paragraphs and Paragraphing", "Purdue OWL",
-                "写作指南", "学习主题句、统一性和连贯性，按指南改写一个结构松散的段落。",
-                "https://owl.purdue.edu/owl/general_writing/academic_writing/paragraphs_and_paragraphing/index.html", 2);
-        addResource(courses, resources, "大学英语进阶", "Strong Thesis Statements", "Purdue OWL",
-                "写作训练", "区分事实陈述与可论证观点，为学术短文写出清晰、具体的 thesis statement。",
-                "https://owl.purdue.edu/owl/general_writing/the_writing_process/thesis_statement_tips.html", 3);
-        addResource(courses, resources, "大学英语进阶", "B2 Writing", "British Council",
-                "分级练习", "阅读范文、完成写作任务并对照反馈，训练邮件、报告、评论和议论文。",
-                "https://learnenglish.britishcouncil.org/skills/writing/b2-writing", 4);
-        addResource(courses, resources, "大学英语进阶", "Academic Phrasebank", "University of Manchester",
-                "表达手册", "按引言、比较、因果和结论场景积累学术表达，并在写作中正确改写使用。",
-                "https://www.phrasebank.manchester.ac.uk/", 5);
-
-        addResource(courses, resources, "人工智能导论", "MIT 6.036 机器学习导论", "MIT OpenCourseWare",
-                "完整课程", "系统学习表示、泛化、监督学习、神经网络和强化学习，并完成课程练习。",
-                "https://ocw.mit.edu/courses/6-036-introduction-to-machine-learning-fall-2020/", 2);
-        addResource(courses, resources, "人工智能导论", "TensorFlow 核心教程", "TensorFlow",
-                "代码教程", "用可运行笔记本完成分类、回归和神经网络入门实验。",
-                "https://www.tensorflow.org/tutorials", 3);
-        addResource(courses, resources, "人工智能导论", "PyTorch Tutorials", "PyTorch",
-                "代码教程", "从张量、自动微分到模型训练，独立实现并评估一个基础神经网络。",
-                "https://pytorch.org/tutorials/", 4);
-        addResource(courses, resources, "人工智能导论", "负责任的 AI 入门", "Google for Developers",
-                "责任实践", "识别公平性、隐私、安全和问责风险，为一个 AI 场景完成风险检查清单。",
-                "https://developers.google.com/machine-learning/guides/intro-responsible-ai", 5);
-
-        addResource(resources, python, "NumPy 学习资源", "NumPy",
-                "基础实践", "通过官方快速入门掌握数组、索引、广播和向量化计算。",
-                "https://numpy.org/learn/", 2);
-        addResource(resources, python, "pandas 入门教程", "pandas",
-                "数据处理", "练习读取表格、筛选、清洗、分组聚合和重塑数据，形成分析工作流。",
-                "https://pandas.pydata.org/docs/getting_started/index.html", 3);
-        addResource(resources, python, "Matplotlib 教程", "Matplotlib",
-                "可视化", "从基础图表到多子图和样式设置，把数据结论表达为清晰图形。",
-                "https://matplotlib.org/stable/tutorials/index.html", 4);
-        addResource(resources, python, "Try Jupyter", "Project Jupyter",
-                "在线实验", "无需本地安装即可运行 Notebook，把代码、说明和图表整理成可复现报告。",
-                "https://jupyter.org/try", 5);
-
-        addResource(resources, git, "Git 官方入门教程", "Git SCM",
-                "官方教程", "动手完成初始化、暂存、提交、分支与合并，理解工作区、暂存区和仓库。",
-                "https://git-scm.com/docs/gittutorial", 2);
-        addResource(resources, git, "GitHub Skills", "GitHub",
-                "互动课程", "在真实仓库中练习 Pull Request、代码评审、冲突处理和 GitHub Actions。",
-                "https://skills.github.com/", 3);
-        addResource(resources, git, "GitHub Flow", "GitHub Docs",
-                "协作规范", "按分支、提交、Pull Request、评审和合并的流程完成一次功能交付。",
-                "https://docs.github.com/en/get-started/using-github/github-flow", 4);
-        addResource(resources, git, "Conventional Commits", "Conventional Commits",
-                "提交规范", "学习结构化提交信息，使用 feat、fix 等类型建立清晰可追踪的版本历史。",
-                "https://www.conventionalcommits.org/zh-hans/v1.0.0/", 5);
+    private static void seedChapterContent(CourseRepository courses) {
+        courses.findAllByPublishedTrueOrderByIdAsc().forEach(course -> {
+            course.getChapters().forEach(chapter -> {
+                ChapterContentCatalog.Content content = ChapterContentCatalog.contentFor(chapter.getTitle());
+                chapter.updateLesson(content.overview(), content.objectivesText(), content.keyPointsText(), content.practiceTask());
+            });
+            courses.save(course);
+        });
     }
 
-    private static void addResource(CourseRepository courses, CourseResourceRepository resources,
-                                    String courseTitle, String title, String provider, String type,
-                                    String description, String url, int order) {
-        courses.findByTitle(courseTitle).ifPresent(course ->
-                addResource(resources, course, title, provider, type, description, url, order));
+    private static void synchronizeChineseResources(CourseRepository courses, CourseResourceRepository resources) {
+        courses.findAllByPublishedTrueOrderByIdAsc().forEach(course -> {
+            resources.deleteAll(resources.findByCourseIdOrderBySortOrderAsc(course.getId()));
+            List<ResourceSeed> seeds = chineseResources(course.getTitle());
+            for (int index = 0; index < seeds.size(); index++) {
+                ResourceSeed seed = seeds.get(index);
+                resources.save(new CourseResource(course.getId(), seed.title(), seed.provider(), seed.type(),
+                        seed.description(), seed.url(), index + 1));
+            }
+        });
     }
 
-    private static void addResource(CourseResourceRepository resources, Course course,
-                                    String title, String provider, String type,
-                                    String description, String url, int order) {
-        if (!resources.existsByCourseIdAndUrl(course.getId(), url)) {
-            resources.save(new CourseResource(course.getId(), title, provider, type, description, url, order));
-        }
+    private static List<ResourceSeed> chineseResources(String courseTitle) {
+        return switch (courseTitle) {
+            case "数据结构与算法" -> List.of(
+                    resource("Hello 算法中文教程", "Hello 算法", "中文教材", "动画图解配合可运行代码，系统学习复杂度、数组、链表、树、图、查找和排序。", "https://www.hello-algo.com/"),
+                    resource("OI Wiki 数据结构", "OI Wiki", "中文手册", "由中文社区维护的数据结构与算法知识库，适合按章节查漏补缺。", "https://oi-wiki.org/ds/"),
+                    resource("VisuAlgo 中文可视化", "VisuAlgo", "交互演示", "通过中文界面逐步观察排序、树和图算法中每一次状态变化。", "https://visualgo.net/zh"),
+                    resource("LeetCode 学习计划", "力扣中国", "在线练习", "按学习计划完成数组、链表、二叉树和图等专题练习，并获得即时判题。", "https://leetcode.cn/studyplan/"),
+                    resource("洛谷题单广场", "洛谷", "题单练习", "使用中文题面和在线评测巩固算法实现，建议从官方精选题单逐级训练。", "https://www.luogu.com.cn/training/list"));
+            case "数据库原理" -> List.of(
+                    resource("MySQL 中文教程", "菜鸟教程", "中文教程", "从数据库创建、SQL 查询到事务、索引与管理的中文入门教程。", "https://www.runoob.com/mysql/mysql-tutorial.html"),
+                    resource("SQL 中文教程", "W3School 中文网", "中文教程", "用短小示例学习 SELECT、连接、聚合、约束和数据修改语句。", "https://www.w3school.com.cn/sql/index.asp"),
+                    resource("SQLZoo 中文练习", "SQLZoo", "在线练习", "在浏览器中按中文题目直接编写 SQL，覆盖查询、连接、聚合和子查询。", "https://sqlzoo.net/wiki/SQL_Tutorial/zh"),
+                    resource("SQL 教程", "廖雪峰的官方网站", "中文课程", "从关系模型开始，用连续实例讲解查询、事务和数据库设计。", "https://liaoxuefeng.com/books/sql/introduction/index.html"),
+                    resource("MySQL 索引与优化", "小林 coding", "图解专题", "通过中文图解理解 B+ 树、索引失效、执行计划和常见优化方法。", "https://xiaolincoding.com/mysql/"));
+            case "Java Web 应用开发" -> List.of(
+                    resource("Spring Boot 中文文档", "Spring 中文文档", "中文文档", "完整覆盖自动配置、Web、数据访问、测试、部署和生产特性。", "https://springdoc.cn/spring-boot/"),
+                    resource("Spring Boot 中文教程", "Spring 中文文档", "项目教程", "从创建工程到开发 REST 接口，适合跟随课程逐步搭建项目。", "https://springdoc.cn/spring-boot-and-spring-data-jpa/"),
+                    resource("Spring Data JPA 中文文档", "Spring 中文文档", "中文文档", "学习实体映射、Repository 查询、事务、分页和审计。", "https://springdoc.cn/spring-data-jpa/"),
+                    resource("HTTP 中文指南", "MDN Web Docs", "中文指南", "系统理解 HTTP 消息、方法、状态码、缓存、认证与连接管理。", "https://developer.mozilla.org/zh-CN/docs/Web/HTTP"),
+                    resource("Spring Security 中文文档", "Spring 中文文档", "安全专题", "学习认证、授权、密码存储、过滤器链和 Web 安全配置。", "https://springdoc.cn/spring-security/"));
+            case "计算机网络" -> List.of(
+                    resource("图解网络", "小林 coding", "中文图解", "用大量中文图解串联 TCP/IP、HTTP、网络层、传输层与抓包分析。", "https://xiaolincoding.com/network/"),
+                    resource("HTTP 中文指南", "MDN Web Docs", "中文指南", "从请求响应、连接管理到缓存和认证，理解 Web 通信全过程。", "https://developer.mozilla.org/zh-CN/docs/Web/HTTP"),
+                    resource("TCP/IP 中文教程", "菜鸟教程", "中文教程", "按网络模型、IP、TCP、UDP、DNS 等主题学习基础协议。", "https://www.runoob.com/tcpip/tcpip-tutorial.html"),
+                    resource("网络指北图解教程", "编程指北", "中文图解", "用手绘图和中文讲解掌握网络分层、TCP、UDP、HTTP、IP 与实战排障。", "https://csguide.cn/network/"),
+                    resource("Wireshark 中文教程", "Wireshark 中文站", "实验手册", "学习抓包、显示过滤器、TCP 会话追踪和常见协议字段分析。", "https://www.wireshark.org.cn/"));
+            case "大学英语进阶" -> List.of(
+                    resource("学术英语课程", "U校园·UMOOCs", "中文课程", "中文平台上的大学学术英语课程，包含主题单元、阅读、听说与写作任务。", "https://moocs.unipus.cn/course/7971"),
+                    resource("中国大学 MOOC 外语课程", "中国大学 MOOC", "中文课程", "汇集高校大学英语、学术英语和英语写作课程，可按目标选择完整课程。", "https://www.icourse163.org/channel/2001.htm"),
+                    resource("英语点津", "中国日报网", "双语阅读", "用中文讲解时事英语、词汇表达和文化背景，适合积累真实语料。", "https://language.chinadaily.com.cn/"),
+                    resource("可可英语学习网", "可可英语", "听读训练", "提供中文导航的听力、口语、阅读和词汇训练材料。", "https://www.kekenet.com/"),
+                    resource("沪江英语", "沪江网校", "学习专题", "中文讲解英语语法、写作、听力和考试技巧，适合按薄弱点专项学习。", "https://www.hjenglish.com/"));
+            case "人工智能导论" -> List.of(
+                    resource("机器学习速成课程中文版", "Google for Developers", "中文课程", "用中文模块、可视化和练习掌握机器学习核心概念。", "https://developers.google.com/machine-learning/crash-course?hl=zh-cn"),
+                    resource("机器学习简介中文版", "Google for Developers", "中文入门", "解释监督学习、无监督学习、模型训练与评估的基本框架。", "https://developers.google.com/machine-learning/intro-to-ml?hl=zh-cn"),
+                    resource("TensorFlow 中文学习中心", "TensorFlow", "中文课程", "面向初学者和进阶学习者的中文教程、模型与学习路径。", "https://tensorflow.google.cn/learn?hl=zh-cn"),
+                    resource("TensorFlow 中文教程", "TensorFlow", "代码教程", "可直接在 Colab 运行的分类、回归、神经网络和文本处理中文教程。", "https://tensorflow.google.cn/tutorials?hl=zh-cn"),
+                    resource("负责任的 AI 中文指南", "Google for Developers", "责任实践", "学习公平性、透明度、隐私、安全和问责等 AI 风险控制原则。", "https://developers.google.com/machine-learning/responsible-ai?hl=zh-cn"));
+            case "Python 数据分析基础" -> List.of(
+                    resource("Python 官方中文教程", "Python 软件基金会", "官方中文", "覆盖语法、控制流程、数据结构、函数、模块、异常与类。", "https://docs.python.org/zh-cn/3/tutorial/"),
+                    resource("Python 标准库中文版", "Python 软件基金会", "官方中文", "按模块查阅文件、日期、数据结构、并发与网络等标准能力。", "https://docs.python.org/zh-cn/3/library/"),
+                    resource("Python HOWTO 中文专题", "Python 软件基金会", "官方中文", "通过正则、日志、函数式编程等专题指南深化实战能力。", "https://docs.python.org/zh-cn/3/howto/"),
+                    resource("NumPy 中文网", "NumPy 中文社区", "中文教程", "通过中文示例学习数组、索引、广播、统计和线性代数。", "https://www.numpy.org.cn/"),
+                    resource("Pandas 中文教程", "Pandas 中文社区", "中文教程", "围绕 DataFrame 完成读取、清洗、筛选、连接、分组和时间序列处理。", "https://www.pypandas.cn/"));
+            case "软件工程与 Git 协作" -> List.of(
+                    resource("Pro Git 中文版", "Git SCM", "中文图书", "完整学习 Git 基础、分支、远程协作、工具与内部原理。", "https://git-scm.com/book/zh/v2"),
+                    resource("GitHub 入门中文教程", "GitHub Docs", "官方中文", "用官方中文教程完成仓库、分支、提交和拉取请求基础操作。", "https://docs.github.com/zh/get-started/using-github/hello-world"),
+                    resource("GitHub Flow 中文指南", "GitHub Docs", "协作规范", "按分支、提交、拉取请求、评审和合并的轻量流程协作。", "https://docs.github.com/zh/get-started/using-github/github-flow"),
+                    resource("GitHub Actions 中文入门", "GitHub Docs", "持续集成", "创建自动构建与测试工作流，理解事件、作业、步骤和运行器。", "https://docs.github.com/zh/actions/get-started/quickstart"),
+                    resource("约定式提交中文版", "Conventional Commits", "提交规范", "使用 feat、fix 等结构化提交信息建立清晰可追踪的版本历史。", "https://www.conventionalcommits.org/zh-hans/v1.0.0/"));
+            default -> throw new IllegalArgumentException("缺少中文资源清单：" + courseTitle);
+        };
+    }
+
+    private static ResourceSeed resource(String title, String provider, String type, String description, String url) {
+        return new ResourceSeed(title, provider, type, description, url);
+    }
+
+    private record ResourceSeed(String title, String provider, String type, String description, String url) {
     }
 
     private static void seedAdditionalQuestions(PracticeQuestionRepository questions) {
@@ -382,6 +318,10 @@ public class DemoDataConfig {
         addQuestion(questions, new PracticeQuestion("软件工程", "代码评审最直接的价值是？",
                 "自动替代所有测试", "在合并前发现问题并共享知识", "删除提交历史", "确保永不发生冲突",
                 "B", "评审能在变更合入前发现缺陷、讨论设计并促进团队知识共享。", "基础", 10));
+    }
+
+    private static void seedExpandedQuestions(PracticeQuestionRepository questions) {
+        ExpandedQuestionCatalog.questions().forEach(question -> addQuestion(questions, question));
     }
 
     private static void addQuestion(PracticeQuestionRepository questions, PracticeQuestion question) {

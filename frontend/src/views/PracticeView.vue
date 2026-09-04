@@ -15,6 +15,9 @@ const finished = ref(false)
 const activeSubject = ref('全部')
 
 const subjects = computed(() => ['全部', ...new Set(questions.value.map((question) => question.subject))])
+const subjectCount = (subject: string) => subject === '全部'
+  ? questions.value.length
+  : questions.value.filter((question) => question.subject === subject).length
 const filteredQuestions = computed(() => activeSubject.value === '全部'
   ? questions.value
   : questions.value.filter((question) => question.subject === activeSubject.value))
@@ -111,7 +114,7 @@ onMounted(loadPractice)
     </div>
 
     <nav v-if="questions.length" class="subject-filter glass-card" aria-label="练习科目">
-      <button v-for="subject in subjects" :key="subject" type="button" :class="{ active: activeSubject === subject }" @click="selectSubject(subject)">{{ subject }}</button>
+      <button v-for="subject in subjects" :key="subject" type="button" :class="{ active: activeSubject === subject }" @click="selectSubject(subject)">{{ subject }} <span>{{ subjectCount(subject) }}</span></button>
     </nav>
 
     <div v-if="loading" class="state-card glass-card"><span class="loader"></span><p>正在准备今日练习…</p></div>

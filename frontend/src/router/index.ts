@@ -5,6 +5,7 @@ import StudentLayout from '../layouts/StudentLayout.vue'
 import DashboardView from '../views/DashboardView.vue'
 import CoursesView from '../views/CoursesView.vue'
 import CourseDetailView from '../views/CourseDetailView.vue'
+import ChapterLessonView from '../views/ChapterLessonView.vue'
 import PracticeView from '../views/PracticeView.vue'
 
 const router = createRouter({
@@ -16,6 +17,7 @@ const router = createRouter({
       { path: '', name: 'dashboard', component: DashboardView },
       { path: 'courses', name: 'courses', component: CoursesView },
       { path: 'courses/:id', name: 'course-detail', component: CourseDetailView },
+      { path: 'courses/:courseId/chapters/:chapterId', name: 'chapter-lesson', component: ChapterLessonView },
       { path: 'practice', name: 'practice', component: PracticeView },
     ] },
     { path: '/:pathMatch(.*)*', redirect: '/' },

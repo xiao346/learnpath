@@ -1,6 +1,7 @@
 package com.learnpath.course;
 
 import com.learnpath.course.CourseDtos.ChapterView;
+import com.learnpath.course.CourseDtos.ChapterLessonView;
 import com.learnpath.course.CourseDtos.CourseDetail;
 import com.learnpath.course.CourseDtos.CourseSummary;
 import com.learnpath.course.CourseDtos.ProgressView;
@@ -78,6 +79,35 @@ public class CourseService {
                 progress == null ? null : progress.getLastStudiedAt(), chapters, resources);
     }
 
+    @Transactional(readOnly = true)
+    public ChapterLessonView lesson(Long userId, Long courseId, Long chapterId) {
+        Course course = courseRepository.findWithChaptersByIdAndPublishedTrue(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("课程不存在或已下架"));
+        List<Chapter> chapters = course.getChapters();
+        int chapterPosition = -1;
+        for (int index = 0; index < chapters.size(); index++) {
+            if (chapters.get(index).getId().equals(chapterId)) {
+                chapterPosition = index;
+                break;
+            }
+        }
+        if (chapterPosition < 0) {
+            throw new IllegalArgumentException("章节不存在或不属于当前课程");
+        }
+
+        Chapter chapter = chapters.get(chapterPosition);
+        int completedLessons = progressRepository.findByUserIdAndCourseId(userId, courseId)
+                .map(LearningProgress::getCompletedLessons)
+                .orElse(0);
+        return new ChapterLessonView(
+                course.getId(), course.getTitle(), chapter.getId(), chapter.getTitle(),
+                chapter.getOrderIndex(), chapter.getDurationMinutes(), chapter.getOrderIndex() <= completedLessons,
+                chapter.getOverview(), lines(chapter.getObjectives()), lines(chapter.getKeyPoints()),
+                chapter.getPracticeTask(),
+                chapterPosition == 0 ? null : chapters.get(chapterPosition - 1).getId(),
+                chapterPosition == chapters.size() - 1 ? null : chapters.get(chapterPosition + 1).getId());
+    }
+
     @Transactional
     public ProgressView updateProgress(Long userId, Long courseId, int completedLessons) {
         Course course = courseRepository.findWithChaptersByIdAndPublishedTrue(courseId)
@@ -111,5 +141,9 @@ public class CourseService {
 
     private int percent(int completedLessons, int totalLessons) {
         return totalLessons == 0 ? 0 : Math.round((completedLessons * 100f) / totalLessons);
+    }
+
+    private List<String> lines(String value) {
+        return value == null || value.isBlank() ? List.of() : value.lines().filter(line -> !line.isBlank()).toList();
     }
 }

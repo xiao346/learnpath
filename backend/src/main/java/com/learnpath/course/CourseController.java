@@ -3,6 +3,7 @@ package com.learnpath.course;
 import com.learnpath.auth.AuthService;
 import com.learnpath.common.ApiResponse;
 import com.learnpath.course.CourseDtos.CourseDetail;
+import com.learnpath.course.CourseDtos.ChapterLessonView;
 import com.learnpath.course.CourseDtos.CourseSummary;
 import com.learnpath.course.CourseDtos.ProgressView;
 import com.learnpath.course.CourseDtos.UpdateProgressRequest;
@@ -48,6 +49,16 @@ public class CourseController {
     ) {
         Long userId = authService.currentUser(authorization).id();
         return ApiResponse.ok(courseService.detail(userId, courseId));
+    }
+
+    @GetMapping("/{courseId}/chapters/{chapterId}")
+    public ApiResponse<ChapterLessonView> lesson(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+            @PathVariable Long courseId,
+            @PathVariable Long chapterId
+    ) {
+        Long userId = authService.currentUser(authorization).id();
+        return ApiResponse.ok(courseService.lesson(userId, courseId, chapterId));
     }
 
     @PostMapping("/{courseId}/progress")

@@ -31,6 +31,18 @@ public class Chapter {
     @Column(nullable = false)
     private int durationMinutes;
 
+    @Column(length = 1500)
+    private String overview;
+
+    @Column(length = 2500)
+    private String objectives;
+
+    @Column(length = 5000)
+    private String keyPoints;
+
+    @Column(length = 2500)
+    private String practiceTask;
+
     protected Chapter() {
     }
 
@@ -45,4 +57,15 @@ public class Chapter {
     public String getTitle() { return title; }
     public int getOrderIndex() { return orderIndex; }
     public int getDurationMinutes() { return durationMinutes; }
+    public String getOverview() { return overview; }
+    public String getObjectives() { return objectives; }
+    public String getKeyPoints() { return keyPoints; }
+    public String getPracticeTask() { return practiceTask; }
+
+    public void updateLesson(String overview, String objectives, String keyPoints, String practiceTask) {
+        this.overview = overview;
+        this.objectives = objectives;
+        this.keyPoints = keyPoints;
+        this.practiceTask = practiceTask;
+    }
 }

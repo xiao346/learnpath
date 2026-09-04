@@ -8,4 +8,5 @@ public interface PracticeQuestionRepository extends JpaRepository<PracticeQuesti
     List<PracticeQuestion> findAllByOrderByIdAsc();
     List<PracticeQuestion> findBySubjectOrderByIdAsc(String subject);
     boolean existsByPrompt(String prompt);
+    long countBySubject(String subject);
 }
