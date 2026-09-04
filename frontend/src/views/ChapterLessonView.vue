@@ -76,33 +76,48 @@ watch(() => route.params.chapterId, loadLesson)
           </section>
 
           <section class="glass-card lesson-section walkthrough-section">
-            <div class="lesson-heading"><span>02</span><div><small>FOLLOW ME</small><h3>跟着示例一步一步做</h3></div></div>
-            <p class="section-intro">先照着做，不要求第一次就背住。每完成一步，再读下面的“为什么”。</p>
-            <ol class="walkthrough-list"><li v-for="(step, index) in lesson.beginnerWalkthrough" :key="step"><span>{{ index + 1 }}</span><div><small>第 {{ index + 1 }} 步</small><p>{{ step }}</p></div></li></ol>
+            <div class="lesson-heading"><span>02</span><div><small>WORKED EXAMPLE</small><h3>完整案例：从题目走到结果</h3></div></div>
+            <div class="example-scenario"><small>示例题目</small><h4>{{ lesson.workedExample.title }}</h4><p>{{ lesson.workedExample.scenario }}</p></div>
+            <div class="worked-example-flow">
+              <template v-for="(step, index) in lesson.workedExample.steps" :key="step.label">
+                <article class="worked-step">
+                  <span>{{ index + 1 }}</span>
+                  <div><small>{{ step.label }}</small><strong>{{ step.action }}</strong><p>为什么：{{ step.explanation }}</p></div>
+                </article>
+                <i v-if="index < lesson.workedExample.steps.length - 1" aria-hidden="true">↓</i>
+              </template>
+            </div>
+            <div class="example-conclusion"><div><small>这个例子说明了什么</small><p>{{ lesson.workedExample.result }}</p></div><div><small>再做一个变式示例</small><p>{{ lesson.workedExample.tryIt }}</p></div></div>
           </section>
 
-          <section class="glass-card lesson-section knowledge-graph-section">
-            <div class="lesson-heading"><span>03</span><div><small>KNOWLEDGE GRAPH</small><h3>知识关系图</h3></div></div>
-            <div class="knowledge-graph">
-              <article class="graph-root"><small>{{ lesson.knowledgeNodes[0].category }}</small><strong>{{ lesson.knowledgeNodes[0].label }}</strong></article>
-              <div class="graph-branches">
-                <article v-for="(node, index) in lesson.knowledgeNodes.slice(1, -1)" :key="node.id" class="graph-node">
-                  <span>{{ lesson.knowledgeEdges[index]?.relation }}</span><small>{{ node.category }}</small><strong>{{ node.label }}</strong>
+          <section class="glass-card lesson-section learning-roadmap-section">
+            <div class="lesson-heading"><span>03</span><div><small>LEARNING ROADMAP</small><h3>本章知识路线：按顺序学会 6 件事</h3></div></div>
+            <div class="learning-roadmap">
+              <template v-for="(step, index) in lesson.learningPath" :key="step.id">
+                <article class="roadmap-step">
+                  <span>{{ String(index + 1).padStart(2, '0') }}</span>
+                  <div><small>{{ step.stage }}</small><h4>{{ step.title }}</h4><p>{{ step.detail }}</p></div>
                 </article>
-              </div>
-              <article class="graph-practice"><span>验证</span><small>{{ lesson.knowledgeNodes.at(-1)?.category }}</small><strong>{{ lesson.knowledgeNodes.at(-1)?.label }}</strong></article>
+                <div v-if="index < lesson.learningPath.length - 1" class="roadmap-arrow" aria-hidden="true"><i>↓</i><small>理解后再往下</small></div>
+              </template>
             </div>
           </section>
 
           <section class="glass-card lesson-section analysis-section">
-            <div class="document-toolbar"><div class="lesson-heading"><span>04</span><div><small>DETAILED EXPLANATION</small><h3>知识点逐条解析</h3></div></div><button type="button" @click="printDocument">打印 / 保存 PDF</button></div>
+            <div class="document-toolbar"><div class="lesson-heading"><span>04</span><div><small>DETAILED EXPLANATION</small><h3>逐个讲透：是什么、怎么用、哪里会错</h3></div></div><button type="button" @click="printDocument">打印 / 保存 PDF</button></div>
             <div class="analysis-list">
               <article v-for="(item, index) in lesson.knowledgeAnalyses" :key="item.id" class="analysis-card">
                 <header><span>{{ String(index + 1).padStart(2, '0') }}</span><div><small>{{ item.category }}</small><h4>{{ item.title }}</h4></div></header>
-                <p>{{ item.analysis }}</p>
-                <div class="mini-diagram" :aria-label="`${item.title}图解`">
-                  <template v-for="(node, nodeIndex) in item.diagramNodes" :key="`${item.id}-${nodeIndex}`"><span>{{ node }}</span><i v-if="nodeIndex < item.diagramNodes.length - 1">→</i></template>
+                <div class="explanation-block"><small>先用白话讲清楚</small><p>{{ item.plainExplanation }}</p></div>
+                <div class="explanation-block importance"><small>为什么必须学</small><p>{{ item.whyItMatters }}</p></div>
+                <div class="concept-diagram" :aria-label="`${item.title}图解`">
+                  <template v-for="(node, nodeIndex) in item.diagram" :key="`${item.id}-${nodeIndex}`">
+                    <div><small>{{ node.label }}</small><strong>{{ node.content }}</strong></div>
+                    <i v-if="nodeIndex < item.diagram.length - 1" aria-hidden="true">→</i>
+                  </template>
                 </div>
+                <div class="analysis-example"><span>例</span><div><small>放进例子里看</small><p>{{ item.example }}</p></div></div>
+                <div class="analysis-bottom"><div><small>⚠ 常见错误</small><p>{{ item.commonMistake }}</p></div><div><small>✓ 学完马上自测</small><p>{{ item.quickCheck }}</p></div></div>
               </article>
             </div>
           </section>

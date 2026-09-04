@@ -42,18 +42,30 @@ export type ChapterLesson = {
   beginnerWalkthrough: string[]
   objectives: string[]
   keyPoints: string[]
+  workedExample: WorkedExample
+  learningPath: LearningStep[]
   knowledgeAnalyses: KnowledgeAnalysis[]
-  knowledgeNodes: KnowledgeNode[]
-  knowledgeEdges: KnowledgeEdge[]
   studySections: StudySection[]
   selfCheckQuestions: string[]
   practiceTask: string
   previousChapterId: number | null
   nextChapterId: number | null
 }
-export type KnowledgeNode = { id: string; label: string; category: string; description: string }
-export type KnowledgeAnalysis = { id: string; title: string; category: string; analysis: string; diagramNodes: string[] }
-export type KnowledgeEdge = { source: string; target: string; relation: string }
+export type WorkedExampleStep = { label: string; action: string; explanation: string }
+export type WorkedExample = { title: string; scenario: string; steps: WorkedExampleStep[]; result: string; tryIt: string }
+export type LearningStep = { id: string; stage: string; title: string; detail: string }
+export type DiagramStep = { label: string; content: string }
+export type KnowledgeAnalysis = {
+  id: string
+  title: string
+  category: string
+  plainExplanation: string
+  whyItMatters: string
+  diagram: DiagramStep[]
+  example: string
+  commonMistake: string
+  quickCheck: string
+}
 export type StudySection = { title: string; summary: string; points: string[] }
 
 export type DashboardFocus = { courseId: number; courseTitle: string; chapterTitle: string; estimatedMinutes: number; completedLessons: number; totalLessons: number; progressPercent: number }

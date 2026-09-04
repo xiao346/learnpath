@@ -64,9 +64,9 @@ public final class CourseDtos {
             List<String> beginnerWalkthrough,
             List<String> objectives,
             List<String> keyPoints,
+            WorkedExampleView workedExample,
+            List<LearningStepView> learningPath,
             List<KnowledgeAnalysisView> knowledgeAnalyses,
-            List<KnowledgeNodeView> knowledgeNodes,
-            List<KnowledgeEdgeView> knowledgeEdges,
             List<StudySectionView> studySections,
             List<String> selfCheckQuestions,
             String practiceTask,
@@ -75,19 +75,40 @@ public final class CourseDtos {
     ) {
     }
 
-    public record KnowledgeNodeView(String id, String label, String category, String description) {
+    public record WorkedExampleView(
+            String title,
+            String scenario,
+            List<WorkedExampleStepView> steps,
+            String result,
+            String tryIt
+    ) {
+    }
+
+    public record WorkedExampleStepView(String label, String action, String explanation) {
+    }
+
+    public record LearningStepView(
+            String id,
+            String stage,
+            String title,
+            String detail
+    ) {
     }
 
     public record KnowledgeAnalysisView(
             String id,
             String title,
             String category,
-            String analysis,
-            List<String> diagramNodes
+            String plainExplanation,
+            String whyItMatters,
+            List<DiagramStepView> diagram,
+            String example,
+            String commonMistake,
+            String quickCheck
     ) {
     }
 
-    public record KnowledgeEdgeView(String source, String target, String relation) {
+    public record DiagramStepView(String label, String content) {
     }
 
     public record StudySectionView(String title, String summary, List<String> points) {

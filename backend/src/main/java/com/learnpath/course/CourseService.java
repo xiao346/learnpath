@@ -6,10 +6,12 @@ import com.learnpath.course.CourseDtos.CourseDetail;
 import com.learnpath.course.CourseDtos.CourseSummary;
 import com.learnpath.course.CourseDtos.ProgressView;
 import com.learnpath.course.CourseDtos.ResourceView;
-import com.learnpath.course.CourseDtos.KnowledgeEdgeView;
-import com.learnpath.course.CourseDtos.KnowledgeNodeView;
+import com.learnpath.course.CourseDtos.DiagramStepView;
 import com.learnpath.course.CourseDtos.KnowledgeAnalysisView;
+import com.learnpath.course.CourseDtos.LearningStepView;
 import com.learnpath.course.CourseDtos.StudySectionView;
+import com.learnpath.course.CourseDtos.WorkedExampleStepView;
+import com.learnpath.course.CourseDtos.WorkedExampleView;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -109,8 +111,8 @@ public class CourseService {
                 chapter.getOrderIndex(), chapter.getDurationMinutes(), chapter.getOrderIndex() <= completedLessons,
                 chapter.getOverview(), chapter.getBeginnerIntro(), chapter.getBeginnerAnalogy(),
                 lines(chapter.getBeginnerWalkthrough()), lines(chapter.getObjectives()), keyPoints,
+                workedExample(chapter, keyPoints), learningPath(keyPoints),
                 knowledgeAnalyses(chapter, keyPoints),
-                knowledgeNodes(chapter, keyPoints), knowledgeEdges(keyPoints.size()),
                 studySections(chapter, keyPoints), selfCheckQuestions(chapter, keyPoints),
                 chapter.getPracticeTask(),
                 chapterPosition == 0 ? null : chapters.get(chapterPosition - 1).getId(),
@@ -156,46 +158,148 @@ public class CourseService {
         return value == null || value.isBlank() ? List.of() : value.lines().filter(line -> !line.isBlank()).toList();
     }
 
-    private List<KnowledgeNodeView> knowledgeNodes(Chapter chapter, List<String> points) {
-        java.util.ArrayList<KnowledgeNodeView> nodes = new java.util.ArrayList<>();
-        nodes.add(new KnowledgeNodeView("root", chapter.getTitle(), "核心主题", chapter.getOverview()));
+    private WorkedExampleView workedExample(Chapter chapter, List<String> points) {
+        BeginnerLessonCatalog.Guide guide = BeginnerLessonCatalog.guideFor(chapter.getTitle());
+        List<String> exampleParts = exampleParts(guide.example());
+        return new WorkedExampleView(
+                chapter.getTitle() + "完整跟做示例",
+                guide.example(),
+                List.of(
+                        new WorkedExampleStepView(
+                                "题目目标",
+                                examplePart(exampleParts, 0, guide.intro()),
+                                "先明确处理对象与目标。对应知识是：“" + pointAt(points, 0) + "”"),
+                        new WorkedExampleStepView(
+                                "实际操作 1",
+                                examplePart(exampleParts, 1, guide.example()),
+                                "这一操作为什么成立：" + pointAt(points, 1)),
+                        new WorkedExampleStepView(
+                                "实际操作 2",
+                                examplePart(exampleParts, 2, "继续按同一规则处理，并把每一步的变化写下来。"),
+                                "做这一步时要检查：" + pointAt(points, 2)),
+                        new WorkedExampleStepView(
+                                "比较结果",
+                                examplePart(exampleParts, 3, "比较两种做法的步骤、结果或代价，写出哪一种更适合当前条件。"),
+                                "不要只看答案，还要说明判断依据：" + pointAt(points, 3))),
+                "本例最终要说明：“" + chapter.getBeginnerIntro() + "”现在应当能从例子中的每一步说出原因。",
+                "变式示例（带提示）：" + chapter.getPracticeTask() + " 提示：先照上面四步写出目标、操作、结果，再用“"
+                        + conceptTitle(pointAt(points, 5)) + "”检查边界。");
+    }
+
+    private List<String> exampleParts(String example) {
+        return java.util.Arrays.stream(example.split("[：；。]"))
+                .map(String::trim)
+                .filter(part -> !part.isBlank())
+                .toList();
+    }
+
+    private String examplePart(List<String> parts, int index, String fallback) {
+        return index < parts.size() ? parts.get(index) : fallback;
+    }
+
+    private List<LearningStepView> learningPath(List<String> points) {
+        String[] stages = {"先认识", "再理解", "会分析", "看进阶", "能迁移", "辨边界"};
+        java.util.ArrayList<LearningStepView> path = new java.util.ArrayList<>();
         for (int index = 0; index < points.size(); index++) {
             String point = points.get(index);
-            nodes.add(new KnowledgeNodeView("point-" + (index + 1), shortLabel(point),
-                    switch (index % 3) {
-                        case 0 -> "概念基础";
-                        case 1 -> "原理方法";
-                        default -> "应用边界";
-                    }, point));
+            path.add(new LearningStepView(
+                    "path-" + (index + 1), stages[Math.min(index, stages.length - 1)],
+                    conceptTitle(point), point));
         }
-        nodes.add(new KnowledgeNodeView("practice", "实践验证", "学习产出", chapter.getPracticeTask()));
-        return nodes;
+        return path;
     }
 
     private List<KnowledgeAnalysisView> knowledgeAnalyses(Chapter chapter, List<String> points) {
+        BeginnerLessonCatalog.Guide guide = BeginnerLessonCatalog.guideFor(chapter.getTitle());
         java.util.ArrayList<KnowledgeAnalysisView> analyses = new java.util.ArrayList<>();
         for (int index = 0; index < points.size(); index++) {
             String point = points.get(index);
             analyses.add(new KnowledgeAnalysisView(
-                    "analysis-" + (index + 1), shortLabel(point), category(index), point,
-                    diagramNodes(chapter.getTitle(), point)));
+                    "analysis-" + (index + 1), conceptTitle(point), category(index),
+                    plainExplanation(point), whyItMatters(index), diagramSteps(point),
+                    relatedExample(index, guide, chapter.getPracticeTask()),
+                    commonMistake(point, index), quickCheck(point, index)));
         }
         return analyses;
     }
 
-    private List<String> diagramNodes(String chapterTitle, String point) {
-        List<String> parts = java.util.Arrays.stream(point.split("[，；。]"))
-                .map(String::trim)
-                .filter(part -> !part.isBlank())
-                .map(this::diagramLabel)
-                .limit(4)
-                .toList();
-        return parts.size() >= 2 ? parts : List.of(chapterTitle, diagramLabel(point));
+    private List<DiagramStepView> diagramSteps(String point) {
+        List<String> parts = clauses(point);
+        String[] labels = switch (parts.size()) {
+            case 1 -> new String[]{"核心结论"};
+            case 2 -> new String[]{"前提 / 对象", "规则 / 结果"};
+            case 3 -> new String[]{"先看对象", "再看规则", "最后判断"};
+            default -> new String[]{"对象", "条件", "处理", "边界"};
+        };
+        java.util.ArrayList<DiagramStepView> steps = new java.util.ArrayList<>();
+        for (int index = 0; index < parts.size(); index++) {
+            steps.add(new DiagramStepView(labels[Math.min(index, labels.length - 1)], parts.get(index)));
+        }
+        return steps;
     }
 
-    private String diagramLabel(String value) {
-        String cleaned = value.replaceFirst("^(但|并且|因此|所以|而是|再)", "").trim();
-        return cleaned.length() <= 18 ? cleaned : cleaned.substring(0, 18) + "…";
+    private List<String> clauses(String point) {
+        return java.util.Arrays.stream(point.split("[，；。]"))
+                .map(String::trim)
+                .filter(part -> !part.isBlank())
+                .limit(4)
+                .toList();
+    }
+
+    private String plainExplanation(String point) {
+        List<String> parts = clauses(point);
+        if (parts.size() == 1) {
+            return "核心结论是：“" + parts.get(0) + "”。理解时要能指出它处理的对象、采用的动作以及得到的结果。";
+        }
+        String rest = String.join("；", parts.subList(1, parts.size()));
+        return "这条知识分两层：先记住核心结论“" + parts.get(0) + "”；再理解它的条件、过程或边界——“" + rest
+                + "”。两层必须一起使用，不能只背前半句。";
+    }
+
+    private String whyItMatters(int index) {
+        return switch (index % 3) {
+            case 0 -> "它负责回答“本章究竟在讨论什么”。这个概念没分清，后面的规则、步骤和例子都会混在一起。";
+            case 1 -> "它负责回答“具体应该怎样做、为什么这样做”。做题或写代码时，这通常就是选择处理方法的依据。";
+            default -> "它负责回答“什么时候可以用、什么时候会出错”。初学者最容易漏掉这一层，导致会背结论却不会判断场景。";
+        };
+    }
+
+    private String relatedExample(int index, BeginnerLessonCatalog.Guide guide, String practiceTask) {
+        return switch (index % 3) {
+            case 0 -> "生活中的对应：" + guide.analogy();
+            case 1 -> "放进完整案例：" + guide.example();
+            default -> "换到真实任务：" + practiceTask;
+        };
+    }
+
+    private String commonMistake(String point, int index) {
+        String title = conceptTitle(point);
+        if (point.matches(".*(不|不能|必须|只有|要求|适合|但|警惕).*")) {
+            return "不要忽略原句里的限制词。“" + title + "”不是在任何条件下都成立，使用前要逐项核对前提和边界。";
+        }
+        return switch (index % 3) {
+            case 0 -> "只记住“" + title + "”这个名称，却不能指出它对应的对象和作用。请回到上面的生活例子逐一对应。";
+            case 1 -> "看到熟悉题目就直接套方法，却没有写出中间步骤。结果即使碰巧正确，也无法判断规则是否真正用对。";
+            default -> "只验证正常情况，不检查空值、极端输入或条件变化。边界一变，原来的结论可能立即失效。";
+        };
+    }
+
+    private String quickCheck(String point, int index) {
+        String title = conceptTitle(point);
+        return switch (index % 3) {
+            case 0 -> "不用看原文，用一句话说明“" + title + "”是什么，并举出一个属于它的对象。";
+            case 1 -> "如果让你向同学演示“" + title + "”，第一步、第二步和最终结果分别是什么？";
+            default -> "给“" + title + "”换一个条件：它还成立吗？说出判断依据，而不是只回答“是”或“否”。";
+        };
+    }
+
+    private String conceptTitle(String point) {
+        List<String> parts = clauses(point);
+        return parts.isEmpty() ? point : parts.get(0);
+    }
+
+    private String pointAt(List<String> points, int index) {
+        return index < points.size() ? points.get(index) : "回到案例，写出这一阶段的输入、处理和结果。";
     }
 
     private String category(int index) {
@@ -204,18 +308,6 @@ public class CourseService {
             case 1 -> "原理与方法";
             default -> "场景与边界";
         };
-    }
-
-    private List<KnowledgeEdgeView> knowledgeEdges(int pointCount) {
-        java.util.ArrayList<KnowledgeEdgeView> edges = new java.util.ArrayList<>();
-        for (int index = 1; index <= pointCount; index++) {
-            edges.add(new KnowledgeEdgeView("root", "point-" + index,
-                    index <= 2 ? "包含" : index <= 4 ? "推导" : "迁移"));
-        }
-        if (pointCount > 0) {
-            edges.add(new KnowledgeEdgeView("point-" + pointCount, "practice", "验证"));
-        }
-        return edges;
     }
 
     private List<StudySectionView> studySections(Chapter chapter, List<String> points) {
