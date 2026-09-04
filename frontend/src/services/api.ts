@@ -27,6 +27,27 @@ export type CourseSummary = {
 export type Chapter = { id: number; title: string; orderIndex: number; durationMinutes: number; completed: boolean }
 export type CourseDetail = CourseSummary & { description: string; lastStudiedAt: string | null; chapters: Chapter[] }
 
+export type PracticeOption = { key: string; text: string }
+export type PracticeQuestion = {
+  id: number
+  subject: string
+  prompt: string
+  options: PracticeOption[]
+  difficulty: string
+  points: number
+  answered: boolean
+}
+export type PracticeStats = { totalAnswered: number; correctAnswers: number; accuracyPercent: number; totalPoints: number }
+export type PracticeAnswerResult = {
+  questionId: number
+  selectedOption: string
+  correctOption: string
+  correct: boolean
+  explanation: string
+  pointsEarned: number
+  stats: PracticeStats
+}
+
 const tokenKey = 'learnpath_token'
 
 export const getSavedToken = () => localStorage.getItem(tokenKey) ?? sessionStorage.getItem(tokenKey)

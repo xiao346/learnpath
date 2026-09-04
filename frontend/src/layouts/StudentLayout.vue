@@ -22,7 +22,7 @@ async function logout() { await auth.logout(); await router.replace('/login') }
       <nav aria-label="主导航">
         <RouterLink class="nav-item" exact-active-class="active" to="/"><span>⌂</span>学习首页</RouterLink>
         <RouterLink class="nav-item" active-class="active" to="/courses"><span>▤</span>课程中心</RouterLink>
-        <a class="nav-item disabled" href="#"><span>◎</span>在线练习<small>即将开放</small></a>
+        <RouterLink class="nav-item" active-class="active" to="/practice"><span>◎</span>在线练习</RouterLink>
         <a class="nav-item disabled" href="#"><span>◇</span>学习计划</a>
         <a class="nav-item disabled" href="#"><span>✦</span>智能推荐</a>
         <a class="nav-item disabled" href="#"><span>◒</span>学习报告</a>

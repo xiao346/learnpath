@@ -4,6 +4,8 @@ import com.learnpath.course.Course;
 import com.learnpath.course.CourseRepository;
 import com.learnpath.course.LearningProgress;
 import com.learnpath.course.LearningProgressRepository;
+import com.learnpath.practice.PracticeQuestion;
+import com.learnpath.practice.PracticeQuestionRepository;
 import com.learnpath.user.User;
 import com.learnpath.user.UserRepository;
 import com.learnpath.user.UserRole;
@@ -20,6 +22,7 @@ public class DemoDataConfig {
             UserRepository userRepository,
             CourseRepository courseRepository,
             LearningProgressRepository progressRepository,
+            PracticeQuestionRepository questionRepository,
             PasswordEncoder passwordEncoder
     ) {
         return args -> {
@@ -117,6 +120,36 @@ public class DemoDataConfig {
                 progressRepository.save(new LearningProgress(student.getId(), database.getId(), 2));
                 progressRepository.save(new LearningProgress(student.getId(), english.getId(), 4));
                 progressRepository.save(new LearningProgress(student.getId(), ai.getId(), 1));
+            }
+
+            if (questionRepository.count() == 0) {
+                questionRepository.save(new PracticeQuestion(
+                        "数据结构", "在二叉树的前序遍历中，节点的访问顺序是？",
+                        "左子树 → 根节点 → 右子树", "根节点 → 左子树 → 右子树",
+                        "左子树 → 右子树 → 根节点", "根节点 → 右子树 → 左子树",
+                        "B", "前序遍历遵循“根—左—右”的顺序，先访问根节点，再递归遍历左右子树。", "基础", 10));
+                questionRepository.save(new PracticeQuestion(
+                        "数据库", "下列哪一项最能体现数据库事务的原子性？",
+                        "事务中的操作全部成功或全部回滚", "多个事务可以同时执行",
+                        "提交后的数据不会丢失", "事务只能看到已提交的数据",
+                        "A", "原子性保证事务是不可分割的工作单元，其中的操作要么全部完成，要么全部不发生。", "基础", 10));
+                questionRepository.save(new PracticeQuestion(
+                        "Java Web", "RESTful API 中，更新一个已知资源的完整表示通常使用哪个 HTTP 方法？",
+                        "GET", "POST", "PUT", "DELETE",
+                        "C", "PUT 通常用于以请求中的完整表示创建或替换指定 URI 对应的资源。", "基础", 10));
+                questionRepository.save(new PracticeQuestion(
+                        "计算机网络", "TCP 建立连接时使用的经典过程是？",
+                        "一次握手", "两次握手", "三次握手", "四次握手",
+                        "C", "TCP 通过 SYN、SYN-ACK、ACK 三个步骤确认双方收发能力并建立连接。", "基础", 10));
+                questionRepository.save(new PracticeQuestion(
+                        "数据结构", "使用邻接表表示含 V 个顶点、E 条边的图，遍历全部邻接关系的时间复杂度通常是？",
+                        "O(V)", "O(E)", "O(V + E)", "O(V × E)",
+                        "C", "需要访问每个顶点并扫描每条边，因此邻接表遍历的时间复杂度为 O(V + E)。", "进阶", 15));
+                questionRepository.save(new PracticeQuestion(
+                        "人工智能", "监督学习与无监督学习最核心的区别是？",
+                        "是否使用神经网络", "训练数据是否包含目标标签",
+                        "是否需要大量数据", "模型是否能够上线部署",
+                        "B", "监督学习使用带标签样本学习输入到目标的映射，无监督学习则从无标签数据中发现结构。", "基础", 10));
             }
         };
     }
