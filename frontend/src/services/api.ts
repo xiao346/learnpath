@@ -42,6 +42,7 @@ export type ChapterLesson = {
   beginnerWalkthrough: string[]
   objectives: string[]
   keyPoints: string[]
+  knowledgeAnalyses: KnowledgeAnalysis[]
   knowledgeNodes: KnowledgeNode[]
   knowledgeEdges: KnowledgeEdge[]
   studySections: StudySection[]
@@ -51,6 +52,7 @@ export type ChapterLesson = {
   nextChapterId: number | null
 }
 export type KnowledgeNode = { id: string; label: string; category: string; description: string }
+export type KnowledgeAnalysis = { id: string; title: string; category: string; analysis: string; diagramNodes: string[] }
 export type KnowledgeEdge = { source: string; target: string; relation: string }
 export type StudySection = { title: string; summary: string; points: string[] }
 

@@ -64,6 +64,7 @@ public final class CourseDtos {
             List<String> beginnerWalkthrough,
             List<String> objectives,
             List<String> keyPoints,
+            List<KnowledgeAnalysisView> knowledgeAnalyses,
             List<KnowledgeNodeView> knowledgeNodes,
             List<KnowledgeEdgeView> knowledgeEdges,
             List<StudySectionView> studySections,
@@ -75,6 +76,15 @@ public final class CourseDtos {
     }
 
     public record KnowledgeNodeView(String id, String label, String category, String description) {
+    }
+
+    public record KnowledgeAnalysisView(
+            String id,
+            String title,
+            String category,
+            String analysis,
+            List<String> diagramNodes
+    ) {
     }
 
     public record KnowledgeEdgeView(String source, String target, String relation) {

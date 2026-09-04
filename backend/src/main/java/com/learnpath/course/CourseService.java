@@ -8,6 +8,7 @@ import com.learnpath.course.CourseDtos.ProgressView;
 import com.learnpath.course.CourseDtos.ResourceView;
 import com.learnpath.course.CourseDtos.KnowledgeEdgeView;
 import com.learnpath.course.CourseDtos.KnowledgeNodeView;
+import com.learnpath.course.CourseDtos.KnowledgeAnalysisView;
 import com.learnpath.course.CourseDtos.StudySectionView;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -108,6 +109,7 @@ public class CourseService {
                 chapter.getOrderIndex(), chapter.getDurationMinutes(), chapter.getOrderIndex() <= completedLessons,
                 chapter.getOverview(), chapter.getBeginnerIntro(), chapter.getBeginnerAnalogy(),
                 lines(chapter.getBeginnerWalkthrough()), lines(chapter.getObjectives()), keyPoints,
+                knowledgeAnalyses(chapter, keyPoints),
                 knowledgeNodes(chapter, keyPoints), knowledgeEdges(keyPoints.size()),
                 studySections(chapter, keyPoints), selfCheckQuestions(chapter, keyPoints),
                 chapter.getPracticeTask(),
@@ -168,6 +170,40 @@ public class CourseService {
         }
         nodes.add(new KnowledgeNodeView("practice", "实践验证", "学习产出", chapter.getPracticeTask()));
         return nodes;
+    }
+
+    private List<KnowledgeAnalysisView> knowledgeAnalyses(Chapter chapter, List<String> points) {
+        java.util.ArrayList<KnowledgeAnalysisView> analyses = new java.util.ArrayList<>();
+        for (int index = 0; index < points.size(); index++) {
+            String point = points.get(index);
+            analyses.add(new KnowledgeAnalysisView(
+                    "analysis-" + (index + 1), shortLabel(point), category(index), point,
+                    diagramNodes(chapter.getTitle(), point)));
+        }
+        return analyses;
+    }
+
+    private List<String> diagramNodes(String chapterTitle, String point) {
+        List<String> parts = java.util.Arrays.stream(point.split("[，；。]"))
+                .map(String::trim)
+                .filter(part -> !part.isBlank())
+                .map(this::diagramLabel)
+                .limit(4)
+                .toList();
+        return parts.size() >= 2 ? parts : List.of(chapterTitle, diagramLabel(point));
+    }
+
+    private String diagramLabel(String value) {
+        String cleaned = value.replaceFirst("^(但|并且|因此|所以|而是|再)", "").trim();
+        return cleaned.length() <= 18 ? cleaned : cleaned.substring(0, 18) + "…";
+    }
+
+    private String category(int index) {
+        return switch (index % 3) {
+            case 0 -> "概念与定义";
+            case 1 -> "原理与方法";
+            default -> "场景与边界";
+        };
     }
 
     private List<KnowledgeEdgeView> knowledgeEdges(int pointCount) {
