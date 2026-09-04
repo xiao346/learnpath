@@ -1,13 +1,13 @@
 # 知途 LearnPath
 
-面向大学生的智能学习平台毕业设计。当前基础版本包含蓝紫玻璃拟态登录页、学生学习工作台，以及基于 MySQL 和 Redis 会话的 Java 登录接口。
+面向大学生的智能学习平台毕业设计。当前版本包含蓝紫玻璃拟态登录页、学生学习工作台、课程中心、课程详情与可持久化学习进度，并提供基于 Redis 会话的 Java API。
 
 ## 项目结构
 
 ```text
 study/
-├── frontend/       Vue 3 + TypeScript + Vite
-├── backend/        Java 21 + Spring Boot + Spring Data JPA
+├── frontend/       Vue 3 + TypeScript + Vite + Vue Router + Pinia
+├── backend/        Java 21 + Spring Boot + Spring Data JPA + Redis
 └── compose.yaml    MySQL 与 Redis 本地环境
 ```
 
@@ -24,6 +24,15 @@ study/
 如果电脑暂时没有 MySQL 或 Redis，也可用 `./mvnw spring-boot:run -Dspring-boot.run.profiles=preview` 启动纯预览环境。该模式使用临时内存数据，关闭后即清空；正式开发仍使用 MySQL 和 Redis。
 
 项目本地 Redis 基于 Memurai Developer，仅用于开发与测试；执行 `./scripts/stop-redis.ps1` 可安全停止并保存缓存数据。
+
+## 当前接口
+
+- `POST /api/auth/login`：按学生、教师或管理员身份登录
+- `GET /api/auth/me`：读取当前登录用户
+- `POST /api/auth/logout`：退出并清理 Redis 会话
+- `GET /api/courses`：读取课程列表，支持 `keyword` 与 `category` 查询参数
+- `GET /api/courses/{id}`：读取课程详情与章节状态
+- `POST /api/courses/{id}/progress`：更新当前学生的课程进度
 
 ## 演示账号
 

@@ -8,6 +8,7 @@ import CourseDetailView from '../views/CourseDetailView.vue'
 
 const router = createRouter({
   history: createWebHashHistory(),
+  scrollBehavior: () => ({ top: 0 }),
   routes: [
     { path: '/login', name: 'login', component: LoginView, meta: { guest: true } },
     { path: '/', component: StudentLayout, children: [
