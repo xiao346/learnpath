@@ -19,6 +19,7 @@ public final class CourseDtos {
             String difficulty,
             int durationMinutes,
             int totalLessons,
+            long resourceCount,
             int completedLessons,
             int progressPercent,
             String accent,

@@ -101,6 +101,7 @@ public class CourseService {
         return new CourseSummary(
                 course.getId(), course.getTitle(), course.getSubtitle(), course.getCategory(),
                 course.getTeacherName(), course.getDifficulty(), course.getDurationMinutes(), totalLessons,
+                resourceRepository.countByCourseId(course.getId()),
                 completedLessons, percent(completedLessons, totalLessons), course.getAccent(), course.getIcon());
     }
 

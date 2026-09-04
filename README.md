@@ -1,6 +1,6 @@
 # 知途 LearnPath
 
-面向大学生的智能学习平台毕业设计。当前版本包含蓝紫玻璃拟态登录页、数据库驱动的学生学习工作台、课程中心、权威外部学习资源、可持久化学习进度与在线练习，并提供基于 Redis 会话的 Java API。
+面向大学生的智能学习平台毕业设计。当前版本包含蓝紫玻璃拟态登录页、数据库驱动的学生学习工作台、课程中心、40 项权威外部学习资源、可持久化学习进度与在线练习，并提供基于 Redis 会话的 Java API。
 
 ## 项目结构
 
@@ -37,7 +37,7 @@ study/
 - `GET /api/dashboard`：读取学习焦点、今日任务、本周趋势与个性化推荐
 - `POST /api/dashboard/tasks/{id}/toggle`：切换今日任务完成状态
 - `GET /api/courses`：读取课程列表，支持 `keyword` 与 `category` 查询参数
-- `GET /api/courses/{id}`：读取课程详情、章节状态与精选学习资源
+- `GET /api/courses/{id}`：读取课程详情、章节状态与分类学习资源；每门演示课程包含 5 项资源和推荐学习路线
 - `POST /api/courses/{id}/progress`：更新当前学生的课程进度
 - `GET /api/practice/questions`：读取练习题，可按 `subject` 筛选
 - `POST /api/practice/questions/{id}/submit`：提交答案并获取判分解析

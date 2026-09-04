@@ -199,6 +199,11 @@ public class DemoDataConfig {
 
     private static void seedResources(CourseRepository courses, CourseResourceRepository resources,
                                       Course python, Course git) {
+        courses.findByTitle("人工智能导论").ifPresent(course -> resources.findByCourseIdAndUrl(
+                course.getId(), "https://developers.google.com/machine-learning/resources/intro-responsible-ai")
+                .ifPresent(resources::delete));
+        courses.findByTitle("计算机网络").ifPresent(course -> resources.findByCourseIdAndUrl(
+                course.getId(), "https://cs144.github.io/").ifPresent(resources::delete));
         addResource(courses, resources, "数据结构与算法", "OpenDSA 交互式教材", "Virginia Tech",
                 "互动教材", "包含数据结构和算法讲解、可视化与练习的开放教材。",
                 "https://opendsa-server.cs.vt.edu/", 1);
@@ -229,6 +234,104 @@ public class DemoDataConfig {
         addResource(resources, git, "Pro Git 中文版", "Git SCM", "在线图书",
                 "完整讲解 Git 基础、分支、协作、工具与内部原理。",
                 "https://git-scm.com/book/zh/v2", 1);
+
+        addResource(courses, resources, "数据结构与算法", "MIT 6.006 算法导论", "MIT OpenCourseWare",
+                "完整课程", "按课程顺序学习数据结构、算法设计与复杂度分析；包含视频、讲义、测验和编程作业。",
+                "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/", 3);
+        addResource(courses, resources, "数据结构与算法", "6.006 练习与作业", "MIT OpenCourseWare",
+                "课后练习", "完成配套练习题与作业，用代码验证动态数组、排序、树、图和动态规划知识。",
+                "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/pages/assignments/", 4);
+        addResource(courses, resources, "数据结构与算法", "Algorithms for Competitive Programming", "CP-Algorithms",
+                "专题手册", "以专题方式复习图算法、字符串、数论和数据结构，并参考可运行的实现思路。",
+                "https://cp-algorithms.com/", 5);
+
+        addResource(courses, resources, "数据库原理", "MySQL 入门教程", "Oracle MySQL",
+                "入门教程", "从创建数据库和表开始练习查询、连接与常用 SQL，建议在 DataGrip 中同步操作。",
+                "https://dev.mysql.com/doc/refman/8.0/en/tutorial.html", 2);
+        addResource(courses, resources, "数据库原理", "SQL 语句参考", "Oracle MySQL",
+                "语法手册", "按 SELECT、INSERT、UPDATE、DDL 分类查阅语法，并为每类语句编写一个示例。",
+                "https://dev.mysql.com/doc/refman/8.0/en/sql-statements.html", 3);
+        addResource(courses, resources, "数据库原理", "InnoDB 事务模型", "Oracle MySQL",
+                "核心专题", "理解 ACID、自动提交、隔离级别和锁，使用两个连接复现实验现象。",
+                "https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-model.html", 4);
+        addResource(courses, resources, "数据库原理", "索引与查询优化", "Oracle MySQL",
+                "实践专题", "学习 B-Tree 索引与联合索引，使用 EXPLAIN 比较加索引前后的执行计划。",
+                "https://dev.mysql.com/doc/refman/8.0/en/optimization-indexes.html", 5);
+
+        addResource(courses, resources, "Java Web 应用开发", "使用 JPA 访问数据", "Spring",
+                "项目教程", "构建实体、仓库和数据访问层，把 REST 接口连接到关系数据库。",
+                "https://spring.io/guides/gs/accessing-data-jpa/", 3);
+        addResource(courses, resources, "Java Web 应用开发", "保护 Web 应用", "Spring",
+                "安全实践", "完成登录、路由保护与权限控制，理解认证和授权在 Web 项目中的边界。",
+                "https://spring.io/guides/gs/securing-web/", 4);
+        addResource(courses, resources, "Java Web 应用开发", "测试 Web 层", "Spring",
+                "测试实践", "使用 Spring Boot 测试工具验证控制器与应用上下文，为接口补齐自动化测试。",
+                "https://spring.io/guides/gs/testing-web/", 5);
+
+        addResource(courses, resources, "计算机网络", "IPv6 标准 RFC 8200", "RFC Editor",
+                "协议标准", "结合网络层章节理解 IPv6 首部、扩展首部和数据包转发规则。",
+                "https://www.rfc-editor.org/rfc/rfc8200.html", 2);
+        addResource(courses, resources, "计算机网络", "HTTP Semantics RFC 9110", "RFC Editor",
+                "协议标准", "查阅 HTTP 方法、状态码、缓存和内容协商的标准定义。",
+                "https://www.rfc-editor.org/rfc/rfc9110.html", 3);
+        addResource(courses, resources, "计算机网络", "Stanford CS144 计算机网络", "Stanford University",
+                "完整课程", "通过 TCP/IP 课程材料与网络协议栈实验，把分层协议知识落实到代码。",
+                "https://www.scs.stanford.edu/10au-cs144/", 4);
+        addResource(courses, resources, "计算机网络", "HTTP 工作原理", "MDN Web Docs",
+                "图解指南", "从客户端、代理、服务器和连接流程理解一次 Web 请求如何完成。",
+                "https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Guides/Overview", 5);
+
+        addResource(courses, resources, "大学英语进阶", "Paragraphs and Paragraphing", "Purdue OWL",
+                "写作指南", "学习主题句、统一性和连贯性，按指南改写一个结构松散的段落。",
+                "https://owl.purdue.edu/owl/general_writing/academic_writing/paragraphs_and_paragraphing/index.html", 2);
+        addResource(courses, resources, "大学英语进阶", "Strong Thesis Statements", "Purdue OWL",
+                "写作训练", "区分事实陈述与可论证观点，为学术短文写出清晰、具体的 thesis statement。",
+                "https://owl.purdue.edu/owl/general_writing/the_writing_process/thesis_statement_tips.html", 3);
+        addResource(courses, resources, "大学英语进阶", "B2 Writing", "British Council",
+                "分级练习", "阅读范文、完成写作任务并对照反馈，训练邮件、报告、评论和议论文。",
+                "https://learnenglish.britishcouncil.org/skills/writing/b2-writing", 4);
+        addResource(courses, resources, "大学英语进阶", "Academic Phrasebank", "University of Manchester",
+                "表达手册", "按引言、比较、因果和结论场景积累学术表达，并在写作中正确改写使用。",
+                "https://www.phrasebank.manchester.ac.uk/", 5);
+
+        addResource(courses, resources, "人工智能导论", "MIT 6.036 机器学习导论", "MIT OpenCourseWare",
+                "完整课程", "系统学习表示、泛化、监督学习、神经网络和强化学习，并完成课程练习。",
+                "https://ocw.mit.edu/courses/6-036-introduction-to-machine-learning-fall-2020/", 2);
+        addResource(courses, resources, "人工智能导论", "TensorFlow 核心教程", "TensorFlow",
+                "代码教程", "用可运行笔记本完成分类、回归和神经网络入门实验。",
+                "https://www.tensorflow.org/tutorials", 3);
+        addResource(courses, resources, "人工智能导论", "PyTorch Tutorials", "PyTorch",
+                "代码教程", "从张量、自动微分到模型训练，独立实现并评估一个基础神经网络。",
+                "https://pytorch.org/tutorials/", 4);
+        addResource(courses, resources, "人工智能导论", "负责任的 AI 入门", "Google for Developers",
+                "责任实践", "识别公平性、隐私、安全和问责风险，为一个 AI 场景完成风险检查清单。",
+                "https://developers.google.com/machine-learning/guides/intro-responsible-ai", 5);
+
+        addResource(resources, python, "NumPy 学习资源", "NumPy",
+                "基础实践", "通过官方快速入门掌握数组、索引、广播和向量化计算。",
+                "https://numpy.org/learn/", 2);
+        addResource(resources, python, "pandas 入门教程", "pandas",
+                "数据处理", "练习读取表格、筛选、清洗、分组聚合和重塑数据，形成分析工作流。",
+                "https://pandas.pydata.org/docs/getting_started/index.html", 3);
+        addResource(resources, python, "Matplotlib 教程", "Matplotlib",
+                "可视化", "从基础图表到多子图和样式设置，把数据结论表达为清晰图形。",
+                "https://matplotlib.org/stable/tutorials/index.html", 4);
+        addResource(resources, python, "Try Jupyter", "Project Jupyter",
+                "在线实验", "无需本地安装即可运行 Notebook，把代码、说明和图表整理成可复现报告。",
+                "https://jupyter.org/try", 5);
+
+        addResource(resources, git, "Git 官方入门教程", "Git SCM",
+                "官方教程", "动手完成初始化、暂存、提交、分支与合并，理解工作区、暂存区和仓库。",
+                "https://git-scm.com/docs/gittutorial", 2);
+        addResource(resources, git, "GitHub Skills", "GitHub",
+                "互动课程", "在真实仓库中练习 Pull Request、代码评审、冲突处理和 GitHub Actions。",
+                "https://skills.github.com/", 3);
+        addResource(resources, git, "GitHub Flow", "GitHub Docs",
+                "协作规范", "按分支、提交、Pull Request、评审和合并的流程完成一次功能交付。",
+                "https://docs.github.com/en/get-started/using-github/github-flow", 4);
+        addResource(resources, git, "Conventional Commits", "Conventional Commits",
+                "提交规范", "学习结构化提交信息，使用 feat、fix 等类型建立清晰可追踪的版本历史。",
+                "https://www.conventionalcommits.org/zh-hans/v1.0.0/", 5);
     }
 
     private static void addResource(CourseRepository courses, CourseResourceRepository resources,

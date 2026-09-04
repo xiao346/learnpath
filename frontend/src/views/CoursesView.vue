@@ -33,7 +33,7 @@ onMounted(loadCourses)
     <div v-else class="course-grid">
       <RouterLink v-for="course in filteredCourses" :key="course.id" class="course-card glass-card" :to="`/courses/${course.id}`">
         <div class="course-cover" :style="{ '--course-accent': course.accent }"><span>{{ course.icon }}</span><small>{{ course.category }}</small><i></i></div>
-        <div class="course-body"><div class="course-tags"><span>{{ course.difficulty }}</span><span>{{ course.totalLessons }} 课时</span></div><h3>{{ course.title }}</h3><p>{{ course.subtitle }}</p><div class="teacher-row"><span>{{ course.teacherName }}</span><em>{{ Math.floor(course.durationMinutes / 60) }}h {{ course.durationMinutes % 60 }}m</em></div><div class="course-progress"><div><i :style="{ width: `${course.progressPercent}%` }"></i></div><span>{{ course.completedLessons }}/{{ course.totalLessons }} · {{ course.progressPercent }}%</span></div></div>
+        <div class="course-body"><div class="course-tags"><span>{{ course.difficulty }}</span><span>{{ course.totalLessons }} 课时</span><span class="resource-count">↗ {{ course.resourceCount }} 项资源</span></div><h3>{{ course.title }}</h3><p>{{ course.subtitle }}</p><div class="teacher-row"><span>{{ course.teacherName }}</span><em>{{ Math.floor(course.durationMinutes / 60) }}h {{ course.durationMinutes % 60 }}m</em></div><div class="course-progress"><div><i :style="{ width: `${course.progressPercent}%` }"></i></div><span>{{ course.completedLessons }}/{{ course.totalLessons }} · {{ course.progressPercent }}%</span></div></div>
       </RouterLink>
     </div>
   </section>

@@ -18,6 +18,7 @@ export type CourseSummary = {
   difficulty: string
   durationMinutes: number
   totalLessons: number
+  resourceCount: number
   completedLessons: number
   progressPercent: number
   accent: string
