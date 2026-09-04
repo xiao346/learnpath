@@ -106,7 +106,8 @@ public class CourseService {
         return new ChapterLessonView(
                 course.getId(), course.getTitle(), chapter.getId(), chapter.getTitle(),
                 chapter.getOrderIndex(), chapter.getDurationMinutes(), chapter.getOrderIndex() <= completedLessons,
-                chapter.getOverview(), lines(chapter.getObjectives()), keyPoints,
+                chapter.getOverview(), chapter.getBeginnerIntro(), chapter.getBeginnerAnalogy(),
+                lines(chapter.getBeginnerWalkthrough()), lines(chapter.getObjectives()), keyPoints,
                 knowledgeNodes(chapter, keyPoints), knowledgeEdges(keyPoints.size()),
                 studySections(chapter, keyPoints), selfCheckQuestions(chapter, keyPoints),
                 chapter.getPracticeTask(),

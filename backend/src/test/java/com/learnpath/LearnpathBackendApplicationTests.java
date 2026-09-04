@@ -35,6 +35,9 @@ class LearnpathBackendApplicationTests {
 				assertThat(chapter.getObjectives()).contains("\n");
 				assertThat(chapter.getKeyPoints().lines()).hasSizeGreaterThanOrEqualTo(6);
 				assertThat(chapter.getPracticeTask()).isNotBlank();
+				assertThat(chapter.getBeginnerIntro()).isNotBlank();
+				assertThat(chapter.getBeginnerAnalogy()).isNotBlank();
+				assertThat(chapter.getBeginnerWalkthrough().lines()).hasSizeGreaterThanOrEqualTo(4);
 			});
 		});
 		assertThat(questionRepository.count()).isGreaterThanOrEqualTo(64);

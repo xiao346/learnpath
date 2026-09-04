@@ -2,6 +2,7 @@ package com.learnpath.config;
 
 import com.learnpath.course.Course;
 import com.learnpath.course.ChapterContentCatalog;
+import com.learnpath.course.BeginnerLessonCatalog;
 import com.learnpath.course.CourseRepository;
 import com.learnpath.course.CourseResource;
 import com.learnpath.course.CourseResourceRepository;
@@ -208,6 +209,8 @@ public class DemoDataConfig {
                 ChapterContentCatalog.Content content = ChapterContentCatalog.contentFor(chapter.getTitle());
                 chapter.updateLesson(content.overview(), content.objectivesText(),
                         ChapterContentCatalog.expandedKeyPointsText(chapter.getTitle()), content.practiceTask());
+                BeginnerLessonCatalog.Guide guide = BeginnerLessonCatalog.guideFor(chapter.getTitle());
+                chapter.updateBeginnerGuide(guide.intro(), guide.analogy(), guide.walkthroughText(content.practiceTask()));
             });
             courses.save(course);
         });

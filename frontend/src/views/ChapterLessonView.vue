@@ -68,14 +68,27 @@ watch(() => route.params.chapterId, loadLesson)
 
       <div class="lesson-grid">
         <main class="lesson-content">
+          <section class="glass-card lesson-section beginner-section">
+            <div class="beginner-badge"><i></i><span>零基础学习模式</span><small>不需要提前懂术语，按顺序往下学</small></div>
+            <div class="lesson-heading"><span>01</span><div><small>START HERE</small><h3>先用人话弄懂这节课</h3></div></div>
+            <div class="beginner-intro"><span>一句话说明</span><p>{{ lesson.beginnerIntro }}</p></div>
+            <div class="analogy-card"><span>💡</span><div><small>生活类比</small><p>{{ lesson.beginnerAnalogy }}</p></div></div>
+          </section>
+
+          <section class="glass-card lesson-section walkthrough-section">
+            <div class="lesson-heading"><span>02</span><div><small>FOLLOW ME</small><h3>跟着示例一步一步做</h3></div></div>
+            <p class="section-intro">先照着做，不要求第一次就背住。每完成一步，再读下面的“为什么”。</p>
+            <ol class="walkthrough-list"><li v-for="(step, index) in lesson.beginnerWalkthrough" :key="step"><span>{{ index + 1 }}</span><div><small>第 {{ index + 1 }} 步</small><p>{{ step }}</p></div></li></ol>
+          </section>
+
           <section class="glass-card lesson-section">
-            <div class="lesson-heading"><span>01</span><div><small>LEARNING GOALS</small><h3>本节学习目标</h3></div></div>
+            <div class="lesson-heading"><span>03</span><div><small>LEARNING GOALS</small><h3>学完后你能做到什么</h3></div></div>
             <ul class="objective-list"><li v-for="objective in lesson.objectives" :key="objective"><i>✓</i><span>{{ objective }}</span></li></ul>
           </section>
 
           <section class="glass-card lesson-section knowledge-graph-section">
-            <div class="lesson-heading"><span>02</span><div><small>KNOWLEDGE GRAPH</small><h3>章节知识图谱</h3></div></div>
-            <p class="section-intro">从核心主题出发，沿着概念、原理、应用与实践关系建立完整知识网络，每个节点都附有详细说明。</p>
+            <div class="lesson-heading"><span>04</span><div><small>KNOWLEDGE GRAPH</small><h3>把刚学的内容连成一张图</h3></div></div>
+            <p class="section-intro">已经跟做过示例，再看这张图就容易多了：中间是本章主题，下面每个节点说明它包含什么、怎样推导、用在哪里。</p>
             <div class="knowledge-graph">
               <article class="graph-root"><small>{{ lesson.knowledgeNodes[0].category }}</small><strong>{{ lesson.knowledgeNodes[0].label }}</strong><p>{{ lesson.knowledgeNodes[0].description }}</p></article>
               <div class="graph-branches">
@@ -88,14 +101,14 @@ watch(() => route.params.chapterId, loadLesson)
           </section>
 
           <section class="glass-card lesson-section study-document">
-            <div class="document-toolbar"><div class="lesson-heading"><span>03</span><div><small>STUDY DOCUMENT</small><h3>章节精读文档</h3></div></div><button type="button" @click="printDocument">打印 / 保存 PDF</button></div>
-            <p class="section-intro">按“概念—原理—应用—复盘”的顺序精读。每完成一部分，用自己的例子复述一次。</p>
+            <div class="document-toolbar"><div class="lesson-heading"><span>05</span><div><small>STUDY DOCUMENT</small><h3>用文档把知识学扎实</h3></div></div><button type="button" @click="printDocument">打印 / 保存 PDF</button></div>
+            <p class="section-intro">现在再接触专业表达。每读完一条，回想上面的生活类比和跟做示例，不懂就回到第 1、2 部分。</p>
             <article v-for="section in lesson.studySections" :key="section.title" class="document-section"><h4>{{ section.title }}</h4><p>{{ section.summary }}</p><ul><li v-for="point in section.points" :key="point">{{ point }}</li></ul></article>
             <div class="self-check"><span>章末自测</span><ol><li v-for="question in lesson.selfCheckQuestions" :key="question">{{ question }}</li></ol></div>
           </section>
 
           <section class="glass-card lesson-section practice-task">
-            <div class="lesson-heading"><span>04</span><div><small>HANDS-ON TASK</small><h3>动手练习</h3></div></div>
+            <div class="lesson-heading"><span>06</span><div><small>HANDS-ON TASK</small><h3>最后自己做一次</h3></div></div>
             <p>{{ lesson.practiceTask }}</p>
             <div class="task-tip"><span>验收标准</span><p>能够独立完成任务，并用自己的话解释关键步骤与结果；遇到错误时记录原因和修正方法。</p></div>
           </section>

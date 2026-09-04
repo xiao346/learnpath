@@ -37,6 +37,9 @@ export type ChapterLesson = {
   durationMinutes: number
   completed: boolean
   overview: string
+  beginnerIntro: string
+  beginnerAnalogy: string
+  beginnerWalkthrough: string[]
   objectives: string[]
   keyPoints: string[]
   knowledgeNodes: KnowledgeNode[]

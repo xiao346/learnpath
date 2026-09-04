@@ -7,6 +7,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
@@ -43,6 +44,18 @@ public class Chapter {
     @Column(length = 2500)
     private String practiceTask;
 
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String beginnerIntro;
+
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String beginnerAnalogy;
+
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String beginnerWalkthrough;
+
     protected Chapter() {
     }
 
@@ -61,11 +74,20 @@ public class Chapter {
     public String getObjectives() { return objectives; }
     public String getKeyPoints() { return keyPoints; }
     public String getPracticeTask() { return practiceTask; }
+    public String getBeginnerIntro() { return beginnerIntro; }
+    public String getBeginnerAnalogy() { return beginnerAnalogy; }
+    public String getBeginnerWalkthrough() { return beginnerWalkthrough; }
 
     public void updateLesson(String overview, String objectives, String keyPoints, String practiceTask) {
         this.overview = overview;
         this.objectives = objectives;
         this.keyPoints = keyPoints;
         this.practiceTask = practiceTask;
+    }
+
+    public void updateBeginnerGuide(String intro, String analogy, String walkthrough) {
+        this.beginnerIntro = intro;
+        this.beginnerAnalogy = analogy;
+        this.beginnerWalkthrough = walkthrough;
     }
 }
