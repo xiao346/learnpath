@@ -25,8 +25,12 @@ public final class CommunityDtos {
             String content,
             String websiteUrl,
             String stackSummary,
+            List<String> imageUrls,
             Instant createdAt
     ) {
+    }
+
+    public record CommunityImageView(String originalName, String contentType, byte[] data) {
     }
 
     public record CreateCommunityPostRequest(

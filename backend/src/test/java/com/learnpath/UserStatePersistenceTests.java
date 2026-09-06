@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -67,14 +68,25 @@ class UserStatePersistenceTests {
         LoginResponse.UserView author = new LoginResponse.UserView(
                 student.getId(), student.getAccount(), student.getDisplayName(), student.getRole());
 
+        MockMultipartFile screenshot = new MockMultipartFile(
+                "images", "home.png", "image/png", new byte[]{1, 2, 3, 4});
         CommunityPostView published = communityService.publish(author, new CreateCommunityPostRequest(
-                "WEBSITE", "我的第一个课程网站", "我完成了首页和后端接口，准备继续优化手机端体验。", "https://example.com/my-site"));
+                "WEBSITE", "我的第一个课程网站", "我完成了首页和后端接口，准备继续优化手机端体验。", "https://example.com/my-site"),
+                java.util.List.of(screenshot));
 
         assertThat(published.authorName()).isEqualTo("林知夏");
         assertThat(published.stackSummary()).contains("Vue 3", "Spring Boot", "MySQL");
+        assertThat(published.imageUrls()).hasSize(1);
+        String[] imagePath = published.imageUrls().getFirst().split("/");
+        var storedImage = communityService.image(published.id(), Long.valueOf(imagePath[imagePath.length - 1]));
+        assertThat(storedImage.contentType()).isEqualTo("image/png");
+        assertThat(storedImage.data()).containsExactly(1, 2, 3, 4);
         assertThat(communityService.list("WEBSITE").posts())
                 .extracting(CommunityPostView::title)
                 .contains("我的第一个课程网站");
+        assertThat(communityService.list("WEBSITE").posts().stream()
+                .filter(post -> post.id().equals(published.id()))
+                .findFirst().orElseThrow().imageUrls()).containsExactly(published.imageUrls().getFirst());
     }
 
     private User student() {

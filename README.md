@@ -37,9 +37,9 @@ study/
 
 ## 数据存储
 
-MySQL 保存用户、课程、章节、练习、学习任务、课程进度、建站路线、作品内容、样式选择、阶段完成记录、游戏成绩和社区分享，是业务数据的最终来源。Redis 缓存建站路线、游戏进度与社区信息流，并保存登录会话；缓存不可用时，核心业务仍可直接读写 MySQL。
+MySQL 保存用户、课程、章节、练习、学习任务、课程进度、建站路线、作品内容、样式选择、阶段完成记录、游戏成绩、社区分享和分享图片，是业务数据的最终来源。Redis 缓存建站路线、游戏进度与社区信息流，并保存登录会话；缓存不可用时，核心业务仍可直接读写 MySQL。
 
-建站相关数据位于 `web_journey` 和 `journey_stage_progress` 表，游戏成绩位于 `user_game_progress` 表，社区内容位于 `community_post` 表。旧版浏览器中的建站数据会在用户首次进入新版页面时自动迁移到 MySQL，迁移成功后清理旧数据。浏览器只保留登录令牌，实际会话状态仍由服务端 Redis 管理。
+建站相关数据位于 `web_journey` 和 `journey_stage_progress` 表，游戏成绩位于 `user_game_progress` 表，社区文字和图片分别位于 `community_post`、`community_post_image` 表。旧版浏览器中的建站数据会在用户首次进入新版页面时自动迁移到 MySQL，迁移成功后清理旧数据。浏览器只保留登录令牌，实际会话状态仍由服务端 Redis 管理。
 
 ## DataGrip 连接
 
@@ -63,7 +63,8 @@ MySQL 保存用户、课程、章节、练习、学习任务、课程进度、�
 - `GET /api/games/progress`：读取累计游戏分数和已完成挑战
 - `POST /api/games/challenges/{challengeId}/complete`：完成挑战；重复提交不会重复计分
 - `GET /api/community/posts`：读取最新社区分享，可按建站历程或作品展示筛选
-- `POST /api/community/posts`：发布建站历程或带有链接的小网站作品
+- `POST /api/community/posts`：以 multipart 表单发布建站历程或小网站作品，并可上传最多 3 张图片
+- `GET /api/community/posts/{postId}/images/{imageId}`：读取社区分享图片
 - `GET /api/practice/questions`：读取练习题，可按 `subject` 筛选
 - `POST /api/practice/questions/{id}/submit`：提交答案并获取判分解析
 - `GET /api/practice/stats`：读取当前学生的累计答题统计

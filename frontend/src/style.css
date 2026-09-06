@@ -1119,6 +1119,19 @@ a { color: inherit; text-decoration: none; }
 .community-field textarea { min-height: 132px; resize: vertical; line-height: 1.65; }
 .community-field input:focus, .community-field textarea:focus { border-color: rgba(107,210,249,.55); box-shadow: 0 0 0 3px rgba(65,159,210,.1); }
 .community-field small { display: block; margin-top: 5px; color: #63709a; font-size: 12px; text-align: right; }
+.community-upload { margin: 1px 0 14px; display: flex; align-items: center; gap: 10px; }
+.community-file-input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+.community-upload > button { padding: 8px 11px; border: 1px dashed rgba(111,207,242,.34); border-radius: 9px; color: #9ce6ff; background: rgba(48,145,193,.09); font-size: 12px; }
+.community-upload > button span { margin-right: 3px; font-size: 15px; }
+.community-upload > button:disabled { opacity: .42; cursor: default; }
+.community-upload > small { color: #63709a; font-size: 11px; }
+.community-upload-previews { margin: -3px 0 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.community-upload-previews figure { position: relative; min-width: 0; margin: 0; padding: 4px; border: 1px solid rgba(145,160,222,.14); border-radius: 10px; background: rgba(8,12,34,.42); }
+.community-upload-previews figure > img { width: 100%; aspect-ratio: 1; display: block; object-fit: cover; border-radius: 7px; }
+.community-upload-previews figure > button { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.17); border-radius: 50%; color: #fff; background: #383b67; font-size: 15px; line-height: 1; }
+.community-upload-previews figcaption { min-width: 0; padding: 5px 2px 1px; }
+.community-upload-previews figcaption span { display: block; overflow: hidden; color: #9ea9ce; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.community-upload-previews figcaption small { display: block; margin-top: 2px; color: #5f6c94; font-size: 9px; }
 .community-success { margin: 0 0 11px; color: #72dfba; font-size: 13px; line-height: 1.5; }
 .community-submit { width: 100%; min-height: 45px; border: 0; border-radius: 11px; color: white; background: linear-gradient(105deg, #665ff0, #4599c5); font-size: 14px; font-weight: 600; }
 .community-submit:disabled { opacity: .42; cursor: default; }
@@ -1140,6 +1153,12 @@ a { color: inherit; text-decoration: none; }
 .community-post header em.website { color: #78dfbc; background: rgba(49,158,121,.12); }
 .community-post > h3 { margin: 17px 0 7px; font-size: 19px; }
 .community-post > p { margin: 0; color: #98a4ca; font-size: 15px; line-height: 1.75; white-space: pre-wrap; }
+.community-gallery { margin-top: 15px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.community-gallery.count-1 { grid-template-columns: minmax(0, 1fr); }
+.community-gallery.count-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.community-gallery a { min-width: 0; overflow: hidden; border: 1px solid rgba(151,166,226,.13); border-radius: 12px; background: rgba(6,10,29,.35); }
+.community-gallery img { width: 100%; height: 100%; max-height: 330px; aspect-ratio: 4 / 3; display: block; object-fit: cover; transition: transform .25s ease, filter .25s ease; }
+.community-gallery a:hover img { transform: scale(1.025); filter: brightness(1.08); }
 .community-post > footer { margin-top: 16px; padding-top: 13px; display: flex; align-items: center; justify-content: space-between; gap: 15px; border-top: 1px solid rgba(144,158,216,.09); }
 .community-post > footer span { color: #707da8; font-size: 12px; }
 .community-post > footer a { flex: 0 0 auto; padding: 7px 10px; border: 1px solid rgba(91,211,169,.2); border-radius: 8px; color: #81e3c1; background: rgba(47,153,118,.08); font-size: 12px; }
@@ -1273,6 +1292,8 @@ a { color: inherit; text-decoration: none; }
   .community-filters { width: 100%; }
   .community-filters button { flex: 1; }
   .community-post { padding: 17px; }
+  .community-gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .community-gallery.count-1 { grid-template-columns: minmax(0, 1fr); }
   .community-post > footer { align-items: flex-start; flex-direction: column; }
   .community-post > footer a { width: 100%; text-align: center; }
 }

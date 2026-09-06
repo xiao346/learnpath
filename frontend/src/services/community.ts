@@ -13,6 +13,7 @@ export type CommunityPost = {
   content: string
   websiteUrl: string | null
   stackSummary: string
+  imageUrls: string[]
   createdAt: string
 }
 
@@ -31,8 +32,12 @@ export type CommunityPostDraft = {
 export const loadCommunityPosts = (filter: CommunityFilter) =>
   api<CommunityFeed>(`/api/community/posts?type=${filter}`)
 
-export const publishCommunityPost = (draft: CommunityPostDraft) =>
-  api<CommunityPost>('/api/community/posts', {
+export const publishCommunityPost = (draft: CommunityPostDraft, images: File[]) => {
+  const formData = new FormData()
+  formData.append('metadata', new Blob([JSON.stringify(draft)], { type: 'application/json' }))
+  images.forEach(image => formData.append('images', image))
+  return api<CommunityPost>('/api/community/posts', {
     method: 'POST',
-    body: JSON.stringify(draft),
+    body: formData,
   })
+}
