@@ -33,6 +33,9 @@ public class DashboardService {
 
     private static final int WEEKLY_GOAL_MINUTES = 600;
     private static final List<String> DAY_LABELS = List.of("一", "二", "三", "四", "五", "六", "日");
+    private static final List<String> WEBSITE_COURSE_ORDER = List.of(
+            "HTML 与 CSS 网页设计", "JavaScript 网页交互", "Vue 3 前端开发",
+            "Java Web 应用开发", "FastAPI 后端开发", "数据库原理", "软件工程与 Git 协作");
 
     private final CourseRepository courseRepository;
     private final LearningProgressRepository progressRepository;
@@ -98,11 +101,23 @@ public class DashboardService {
         List<LearningProgress> progresses = progressRepository.findByUserIdOrderByLastStudiedAtDesc(userId);
         LearningProgress selectedProgress = progresses.stream()
                 .filter(progress -> courseById.containsKey(progress.getCourseId()))
+                .filter(progress -> WEBSITE_COURSE_ORDER.contains(courseById.get(progress.getCourseId()).getTitle()))
                 .filter(progress -> progress.getCompletedLessons() < courseById.get(progress.getCourseId()).getChapters().size())
                 .findFirst()
                 .orElse(null);
-        Course course = selectedProgress == null ? courses.getFirst() : courseById.get(selectedProgress.getCourseId());
-        int completed = selectedProgress == null ? 0 : selectedProgress.getCompletedLessons();
+        Map<Long, LearningProgress> progressByCourseId = progresses.stream()
+                .collect(Collectors.toMap(LearningProgress::getCourseId, Function.identity(), (first, ignored) -> first));
+        Course course = selectedProgress == null
+                ? WEBSITE_COURSE_ORDER.stream()
+                        .map(title -> courses.stream().filter(item -> item.getTitle().equals(title)).findFirst().orElse(null))
+                        .filter(item -> item != null && (!progressByCourseId.containsKey(item.getId())
+                                || progressByCourseId.get(item.getId()).getCompletedLessons() < item.getChapters().size()))
+                        .findFirst()
+                        .orElse(courses.getFirst())
+                : courseById.get(selectedProgress.getCourseId());
+        int completed = progressByCourseId.containsKey(course.getId())
+                ? progressByCourseId.get(course.getId()).getCompletedLessons()
+                : 0;
         if (course.getChapters().isEmpty()) {
             return new FocusView(course.getId(), course.getTitle(), "课程章节正在准备中", 0, 0, 0, 0);
         }

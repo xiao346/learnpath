@@ -36,7 +36,7 @@ watch(() => route.params.id, loadCourse)
 
 <template>
   <section class="detail-page">
-    <RouterLink class="back-link" to="/courses">← 返回课程中心</RouterLink>
+    <RouterLink class="back-link" to="/knowledge">← 返回知识工具箱</RouterLink>
     <div v-if="loading" class="state-card glass-card"><span class="loader"></span><p>正在展开课程地图…</p></div>
     <div v-else-if="error && !course" class="state-card glass-card"><strong>课程暂时无法打开</strong><p>{{ error }}</p><button @click="loadCourse">重新加载</button></div>
     <template v-else-if="course">

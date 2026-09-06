@@ -27,7 +27,7 @@ class LearnpathBackendApplicationTests {
 
 	@Test
 	void contextLoads() {
-		assertThat(courseRepository.count()).isEqualTo(8);
+		assertThat(courseRepository.count()).isEqualTo(12);
 		courseRepository.findAllByPublishedTrueOrderByIdAsc().forEach(course -> {
 			assertThat(resourceRepository.countByCourseId(course.getId())).isEqualTo(5);
 			course.getChapters().forEach(chapter -> {
@@ -40,8 +40,9 @@ class LearnpathBackendApplicationTests {
 				assertThat(chapter.getBeginnerWalkthrough().lines()).hasSizeGreaterThanOrEqualTo(4);
 			});
 		});
-		assertThat(questionRepository.count()).isGreaterThanOrEqualTo(64);
-		List.of("数据结构", "数据库", "Java Web", "计算机网络", "人工智能", "大学英语", "Python", "软件工程")
+		assertThat(questionRepository.count()).isGreaterThanOrEqualTo(96);
+		List.of("数据结构", "数据库", "Java Web", "计算机网络", "人工智能", "大学英语", "Python", "软件工程",
+				"HTML 与 CSS", "JavaScript", "Vue 3", "FastAPI")
 				.forEach(subject -> assertThat(questionRepository.countBySubject(subject)).isGreaterThanOrEqualTo(8));
 	}
 

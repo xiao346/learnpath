@@ -1,0 +1,50 @@
+/* Shared screen palette. Print keeps the existing light, ink-friendly diagrams. */
+@media print { :root { color-scheme: light; } }
+@media screen {
+  .lesson-content .chapter-tutorial.glass-card {
+    --reader-text: #dce5fa;
+    --reader-muted: #aabbd9;
+    --reader-heading: #eff3ff;
+    --reader-accent: #8cdddc;
+    --reader-border: rgba(170, 188, 244, .2);
+    background: linear-gradient(145deg, rgba(35,42,88,.7), rgba(13,17,46,.5));
+    border-color: var(--border);
+    border-radius: 22px;
+    color: var(--reader-text);
+    color-scheme: dark;
+  }
+  .lesson-content .chapter-tutorial.glass-card :is(h3, h4) { color: var(--reader-heading); border-color: var(--reader-border); }
+  .lesson-content .chapter-tutorial.glass-card .tutorial-lead { color: #ceddf9; }
+  .lesson-content .chapter-tutorial.glass-card :is(.reader-toolbar, .tutorial-scenario, .tutorial-toc li, .tutorial-code > span, .tutorial-check summary span, .tutorial-sources) { color: var(--reader-muted); }
+  .lesson-content .chapter-tutorial.glass-card :is(.tutorial-toc > strong, .tutorial-toc button, .tutorial-check summary, .tutorial-sources a) { color: var(--reader-accent); }
+  .lesson-content .chapter-tutorial.glass-card :is(.tutorial-toc, .tutorial-check, .tutorial-recap, th, td) { border-color: var(--reader-border); }
+  .lesson-content .chapter-tutorial.glass-card .tutorial-scenario { border-color: #6c8bc4; }
+  .lesson-content .chapter-tutorial.glass-card pre { background: rgba(6,11,31,.55); border-color: var(--reader-border); color: #c6e8f3; }
+  .lesson-content .chapter-tutorial.glass-card th { background: rgba(105,124,198,.16); color: #d6eaff; }
+  .lesson-content .chapter-tutorial.glass-card .tutorial-note { color: #e6d6b6; border-color: #cba265; }
+  .lesson-content .chapter-tutorial.glass-card .tutorial-note strong { color: #f1cf93; }
+  .lesson-content .chapter-tutorial.glass-card :is(.reader-toolbar button, .figure-controls button) { background: rgba(105,116,200,.12); border-color: rgba(165,188,241,.28); color: #c4e5f5; }
+  .lesson-content .chapter-tutorial.glass-card :is(.reader-toolbar button:hover, .figure-controls button:hover:not(:disabled), .figure-controls button[aria-pressed='true']) { background: rgba(86,177,183,.2); border-color: #74c8cd; }
+  .lesson-content .chapter-tutorial.glass-card .mechanism-figure { color: var(--reader-text); border-color: var(--reader-border); }
+  .lesson-content .chapter-tutorial.glass-card :is(.mechanism-figure header > span, .mechanism-figure figcaption strong) { color: var(--reader-accent); }
+  .lesson-content .chapter-tutorial.glass-card :is(.scroll-hint, .figure-controls span) { color: var(--reader-muted); }
+  .lesson-content .chapter-tutorial.glass-card figcaption { color: #b8cce7; }
+  .lesson-content .chapter-tutorial.glass-card .diagram-scroll { background: rgba(8,14,35,.38); scrollbar-color: #596992 transparent; }
+  .lesson-content .chapter-tutorial.glass-card .network-svg { color: #dfebff; }
+  .lesson-content .chapter-tutorial.glass-card .network-svg .minor { fill: #b6cce6; }
+  .lesson-content .chapter-tutorial.glass-card .network-svg .path { stroke: #91b8d3; }
+  .lesson-content .chapter-tutorial.glass-card .network-svg .relation { stroke: #798cae; }
+  .lesson-content .chapter-tutorial.glass-card .network-svg [fill='#476a85'] { fill: #91b8d3; }
+  .lesson-content .chapter-tutorial.glass-card .network-svg :is([fill='#cbe3f6'], [fill='#8dbbdc']) { fill: #294f77; }
+  .lesson-content .chapter-tutorial.glass-card .network-svg :is([fill='#ccebd9'], [fill='#e3f3ed'], [fill='#83c9aa']) { fill: #24564f; }
+  .lesson-content .chapter-tutorial.glass-card .network-svg :is([fill='#ffe0ad'], [fill='#fff4d9']) { fill: #5b472f; }
+  .lesson-content .chapter-tutorial.glass-card .network-svg :is([fill='#e2dcf7'], [fill='#f0ebfb']) { fill: #413762; }
+  .lesson-content .chapter-tutorial.glass-card .network-svg :is([fill='#eef5fc'], [fill='#eff5f1'], [fill='#f4f7fa'], [fill='#eef1f5']) { fill: #202d49; }
+  .lesson-content .chapter-tutorial.glass-card .network-svg :is([fill='#ffe3dc'], [fill='#fff5f2']) { fill: #613d43; }
+  .lesson-content .chapter-tutorial.glass-card .network-svg [stroke='#b94132'] { stroke: #ed9a8e; }
+  .lesson-content .chapter-tutorial.glass-card .network-svg [stroke='#319a76'] { stroke: #80d9ba; }
+  .lesson-content .chapter-tutorial.glass-card .network-svg [stroke='#bf812c'] { stroke: #e4ba7a; }
+  .lesson-content .chapter-tutorial.glass-card .network-svg [stroke='#2b8199'] { stroke: #75d5ec; }
+  .lesson-content .chapter-tutorial.glass-card .network-svg [stroke='#dbe5ec'] { stroke: #3b4e6c; }
+  .lesson-content .chapter-tutorial.glass-card .network-svg [stroke='#365f78'] { stroke: #b6d8e8; }
+}

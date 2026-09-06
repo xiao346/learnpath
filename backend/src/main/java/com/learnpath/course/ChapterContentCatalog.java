@@ -80,7 +80,16 @@ public final class ChapterContentCatalog {
     public static Content contentFor(String chapterTitle) {
         Content content = CONTENT.get(chapterTitle);
         if (content == null) {
-            throw new IllegalArgumentException("缺少章节内容：" + chapterTitle);
+            WebDevelopmentLessonCatalog.Lesson lesson = WebDevelopmentLessonCatalog.lessonFor(chapterTitle);
+            if (lesson == null) throw new IllegalArgumentException("缺少章节内容：" + chapterTitle);
+            String overview = "这一章先解决一个看得见的建站问题。你会从最小示例开始，观察页面变化，再把同样方法用到自己的作品里。";
+            return new Content(
+                    overview,
+                    List.of("能用自己的话解释：" + lesson.foundation(),
+                            "能跟着示例演示并说明：" + lesson.method(),
+                            "能在个人网站中正确应用：" + lesson.application()),
+                    List.of(lesson.foundation(), lesson.method(), lesson.application()),
+                    lesson.practice());
         }
         return content;
     }
@@ -94,10 +103,14 @@ public final class ChapterContentCatalog {
 
     private static Map.Entry<String, Content> entry(String title, String foundation, String method,
                                                      String application, String practice) {
-        String overview = "本节围绕“" + title + "”建立从概念理解到动手验证的完整学习路径。先理解原理，再通过例子和任务确认自己能够迁移应用。";
+        String overview = "这一章不从术语表开始，而是先解决一个看得见的问题。你会先通过图和最小示例理解“" +
+                title + "”，再亲手完成一次操作，最后用边界案例检查自己是否真的学会。";
         return Map.entry(title, new Content(
                 overview,
-                List.of("能够准确解释本节核心概念，并辨析容易混淆的边界。", "能够选择合适方法解决一个具体问题，并说明选择依据。"),
+                List.of(
+                        "能用自己的话解释：" + foundation,
+                        "能跟着示例演示并说明：" + method,
+                        "能换一组数据或场景验证：" + application),
                 List.of(foundation, method, application),
                 practice));
     }

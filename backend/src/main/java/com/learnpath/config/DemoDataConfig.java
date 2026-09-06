@@ -15,6 +15,7 @@ import com.learnpath.dashboard.StudyTaskRepository;
 import com.learnpath.practice.PracticeQuestion;
 import com.learnpath.practice.ExpandedQuestionCatalog;
 import com.learnpath.practice.PracticeQuestionRepository;
+import com.learnpath.practice.WebPracticeQuestionCatalog;
 import com.learnpath.user.User;
 import com.learnpath.user.UserRepository;
 import com.learnpath.user.UserRole;
@@ -162,6 +163,51 @@ public class DemoDataConfig {
                             .addChapter("自动化测试与持续集成", 5, 57)
                             .addChapter("版本发布实践", 6, 53)));
 
+            Course htmlCss = courseRepository.findByTitle("HTML 与 CSS 网页设计").orElseGet(() -> courseRepository.save(
+                    new Course("HTML 与 CSS 网页设计", "从空白文件到漂亮、适配手机的个人主页", "建站基础", "知途教研组",
+                            "从浏览器如何读懂网页开始，逐步学习语义化 HTML、表单、CSS 层叠、盒模型、Flex 布局和响应式设计。",
+                            "零基础", 285, "orange", "H5")
+                            .addChapter("网页从哪里开始", 1, 32)
+                            .addChapter("用 HTML 组织内容", 2, 42)
+                            .addChapter("表单与语义标签", 3, 46)
+                            .addChapter("CSS 选择器与层叠", 4, 48)
+                            .addChapter("盒模型与 Flex 布局", 5, 55)
+                            .addChapter("响应式个人主页", 6, 62)));
+
+            Course javascript = courseRepository.findByTitle("JavaScript 网页交互").orElseGet(() -> courseRepository.save(
+                    new Course("JavaScript 网页交互", "让按钮、表单和数据真正动起来", "建站基础", "知途教研组",
+                            "围绕个人网站中的真实交互学习变量、函数、DOM、事件、状态与 Fetch，不从孤立语法题开始。",
+                            "入门", 330, "yellow", "JS")
+                            .addChapter("JavaScript 第一次登场", 1, 35)
+                            .addChapter("变量、类型与数组", 2, 48)
+                            .addChapter("条件、循环与函数", 3, 52)
+                            .addChapter("找到并修改页面元素", 4, 55)
+                            .addChapter("事件与页面状态", 5, 62)
+                            .addChapter("异步请求与 Fetch", 6, 78)));
+
+            Course vue = courseRepository.findByTitle("Vue 3 前端开发").orElseGet(() -> courseRepository.save(
+                    new Course("Vue 3 前端开发", "用组件方式搭建现代单页应用", "前端开发", "知途教研组",
+                            "在掌握必要 HTML、CSS 和 JavaScript 后，用 Vue 3、组合式 API、组件、路由和状态管理完成可维护的个人网站。",
+                            "入门", 405, "green", "Vue")
+                            .addChapter("为什么需要 Vue", 1, 38)
+                            .addChapter("创建 Vue 3 项目", 2, 45)
+                            .addChapter("响应式数据与模板", 3, 54)
+                            .addChapter("组件、Props 与事件", 4, 62)
+                            .addChapter("列表、表单与条件渲染", 5, 58)
+                            .addChapter("路由、状态与接口", 6, 70)
+                            .addChapter("Vue 个人网站实战", 7, 78)));
+
+            Course fastApi = courseRepository.findByTitle("FastAPI 后端开发").orElseGet(() -> courseRepository.save(
+                    new Course("FastAPI 后端开发", "用 Python 快速写出清晰可靠的 Web 接口", "后端开发", "知途教研组",
+                            "从第一个 JSON 接口开始，学习路由、参数校验、CRUD、数据库访问、跨域、测试和部署。",
+                            "入门", 335, "pink", "API")
+                            .addChapter("认识 Python Web 接口", 1, 38)
+                            .addChapter("路由与请求参数", 2, 48)
+                            .addChapter("Pydantic 数据校验", 3, 52)
+                            .addChapter("CRUD 与分层结构", 4, 62)
+                            .addChapter("SQLAlchemy 数据持久化", 5, 66)
+                            .addChapter("跨域、测试与部署", 6, 69)));
+
             seedChapterContent(courseRepository);
             synchronizeChineseResources(courseRepository, resourceRepository);
 
@@ -197,8 +243,11 @@ public class DemoDataConfig {
 
             seedAdditionalQuestions(questionRepository);
             seedExpandedQuestions(questionRepository);
+            WebPracticeQuestionCatalog.questions().forEach(question -> addQuestion(questionRepository, question));
 
             User student = userRepository.findByAccountAndRole("20240001", UserRole.STUDENT).orElseThrow();
+            progressRepository.findByUserIdAndCourseId(student.getId(), htmlCss.getId())
+                    .orElseGet(() -> progressRepository.save(new LearningProgress(student.getId(), htmlCss.getId(), 0)));
             seedDashboardData(student.getId(), taskRepository, sessionRepository);
         };
     }
@@ -278,6 +327,30 @@ public class DemoDataConfig {
                     resource("GitHub Flow 中文指南", "GitHub Docs", "协作规范", "按分支、提交、拉取请求、评审和合并的轻量流程协作。", "https://docs.github.com/zh/get-started/using-github/github-flow"),
                     resource("GitHub Actions 中文入门", "GitHub Docs", "持续集成", "创建自动构建与测试工作流，理解事件、作业、步骤和运行器。", "https://docs.github.com/zh/actions/get-started/quickstart"),
                     resource("约定式提交中文版", "Conventional Commits", "提交规范", "使用 feat、fix 等结构化提交信息建立清晰可追踪的版本历史。", "https://www.conventionalcommits.org/zh-hans/v1.0.0/"));
+            case "HTML 与 CSS 网页设计" -> List.of(
+                    resource("MDN HTML 入门", "MDN Web Docs", "官方中文", "从元素、属性和页面结构开始，建立准确的 HTML 基础。", "https://developer.mozilla.org/zh-CN/docs/Learn_web_development/Core/Structuring_content"),
+                    resource("MDN CSS 入门", "MDN Web Docs", "官方中文", "用选择器、属性和值控制网页样式，并理解层叠规则。", "https://developer.mozilla.org/zh-CN/docs/Learn_web_development/Core/Styling_basics"),
+                    resource("Flexbox 青蛙", "Thomas Park", "互动游戏", "通过移动青蛙练习 justify-content、align-items 等 Flex 属性。", "https://flexboxfroggy.com/#zh-cn"),
+                    resource("Grid 花园", "Codepip", "互动游戏", "在可视化关卡中练习 CSS Grid 行列布局。", "https://cssgridgarden.com/#zh-cn"),
+                    resource("web.dev 响应式设计", "web.dev", "中文指南", "学习视口、媒体查询、弹性布局和响应式图片。", "https://web.dev/learn/design?hl=zh-cn"));
+            case "JavaScript 网页交互" -> List.of(
+                    resource("MDN JavaScript 初学者教程", "MDN Web Docs", "官方中文", "从变量、数组和函数逐步进入 DOM、事件与网络请求。", "https://developer.mozilla.org/zh-CN/docs/Learn_web_development/Core/Scripting"),
+                    resource("现代 JavaScript 教程", "javascript.info", "中文教程", "以清晰示例系统讲解语言基础、浏览器对象和异步编程。", "https://zh.javascript.info/"),
+                    resource("MDN DOM 简介", "MDN Web Docs", "官方中文", "理解 JavaScript 如何找到、创建和修改页面元素。", "https://developer.mozilla.org/zh-CN/docs/Web/API/Document_Object_Model/Introduction"),
+                    resource("MDN 事件介绍", "MDN Web Docs", "官方中文", "学习点击、输入、提交等事件以及监听器的使用方式。", "https://developer.mozilla.org/zh-CN/docs/Learn_web_development/Core/Scripting/Events"),
+                    resource("MDN Fetch API", "MDN Web Docs", "官方中文", "使用 Promise 和 Fetch 从后端读取数据并处理错误。", "https://developer.mozilla.org/zh-CN/docs/Web/API/Fetch_API/Using_Fetch"));
+            case "Vue 3 前端开发" -> List.of(
+                    resource("Vue 3 中文教程", "Vue.js", "官方中文", "从声明式渲染到组件、路由和应用扩展的完整官方教程。", "https://cn.vuejs.org/tutorial/"),
+                    resource("Vue 3 指南", "Vue.js", "官方中文", "系统查阅组合式 API、响应式、组件与最佳实践。", "https://cn.vuejs.org/guide/introduction.html"),
+                    resource("Vue SFC 演练场", "Vue.js", "在线练习", "无需安装环境，直接在浏览器编写和运行 Vue 单文件组件。", "https://play.vuejs.org/"),
+                    resource("Vue Router 中文文档", "Vue.js", "官方中文", "学习单页应用中的页面路由、参数和导航守卫。", "https://router.vuejs.org/zh/"),
+                    resource("Pinia 中文文档", "Pinia", "官方中文", "用简单的 Store 管理跨组件共享状态。", "https://pinia.vuejs.org/zh/"));
+            case "FastAPI 后端开发" -> List.of(
+                    resource("FastAPI 中文教程", "FastAPI", "官方中文", "从第一个接口到安全认证、数据库和大型应用结构。", "https://fastapi.tiangolo.com/zh/tutorial/"),
+                    resource("Python 官方中文教程", "Python 软件基金会", "官方中文", "补齐函数、类、模块和异常处理等后端所需基础。", "https://docs.python.org/zh-cn/3/tutorial/"),
+                    resource("Pydantic 中文文档", "Pydantic", "官方文档", "理解基于类型标注的数据解析、校验与序列化。", "https://docs.pydantic.dev/latest/"),
+                    resource("SQLAlchemy 统一教程", "SQLAlchemy", "官方教程", "学习 Python 对象、SQL 表和事务之间的关系。", "https://docs.sqlalchemy.org/en/20/tutorial/"),
+                    resource("HTTP 中文指南", "MDN Web Docs", "中文指南", "理解接口使用的请求方法、状态码、首部和跨域机制。", "https://developer.mozilla.org/zh-CN/docs/Web/HTTP"));
             default -> throw new IllegalArgumentException("缺少中文资源清单：" + courseTitle);
         };
     }
@@ -337,12 +410,17 @@ public class DemoDataConfig {
     private static void seedDashboardData(Long userId, StudyTaskRepository tasks,
                                           StudySessionRepository sessions) {
         LocalDate today = LocalDate.now();
-        if (!tasks.existsByUserIdAndTaskDate(userId, today)) {
-            tasks.save(new StudyTask(userId, "完成算法章节练习", "数据结构", 25, 15, today, true));
-            tasks.save(new StudyTask(userId, "阅读 MySQL 索引章节", "数据库", 30, 20, today, false));
-            tasks.save(new StudyTask(userId, "完成 REST 接口练习", "Java Web", 35, 20, today, false));
-            tasks.save(new StudyTask(userId, "复习 TCP 三次握手", "计算机网络", 20, 15, today, true));
-            tasks.save(new StudyTask(userId, "订正今日错题", "在线练习", 15, 10, today, false));
+        List<StudyTask> todayTasks = tasks.findByUserIdAndTaskDateOrderByIdAsc(userId, today);
+        boolean legacyTasks = !todayTasks.isEmpty() && todayTasks.stream()
+                .noneMatch(task -> task.getSubject().equals("HTML") || task.getSubject().equals("CSS")
+                        || task.getSubject().equals("JavaScript") || task.getSubject().equals("Vue"));
+        if (todayTasks.isEmpty() || legacyTasks) {
+            if (legacyTasks) tasks.deleteAll(todayTasks);
+            tasks.save(new StudyTask(userId, "认识浏览器怎样打开网页", "HTML", 20, 10, today, true));
+            tasks.save(new StudyTask(userId, "写下个人主页的内容结构", "HTML", 25, 15, today, true));
+            tasks.save(new StudyTask(userId, "给第一张作品卡片设计样式", "CSS", 30, 20, today, false));
+            tasks.save(new StudyTask(userId, "让页面按钮响应一次点击", "JavaScript", 25, 20, today, false));
+            tasks.save(new StudyTask(userId, "完成一关布局拼拼乐", "Vue", 15, 10, today, false));
         }
 
         LocalDate monday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));

@@ -79,7 +79,14 @@ public final class ChapterKnowledgeExpansion {
 
     public static List<String> pointsFor(String chapterTitle) {
         List<String> points = POINTS.get(chapterTitle);
-        if (points == null) throw new IllegalArgumentException("缺少章节扩展知识点：" + chapterTitle);
+        if (points == null) {
+            WebDevelopmentLessonCatalog.Lesson lesson = WebDevelopmentLessonCatalog.lessonFor(chapterTitle);
+            if (lesson != null) return List.of(
+                    "动手验证比只读定义更重要，本章的可检查结果是：" + lesson.practice(),
+                    "遇到页面或接口不符合预期时，先缩小到本章的最小示例，再逐项核对输入、状态与输出。",
+                    "把示例迁移到自己的作品时，应保留原理和边界，根据真实内容重新命名，而不是只复制代码。");
+            throw new IllegalArgumentException("缺少章节扩展知识点：" + chapterTitle);
+        }
         return points;
     }
 

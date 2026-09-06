@@ -1,5 +1,16 @@
-# Vue 3 + TypeScript + Vite
+# 知途 LearnPath 前端
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Vue 3、TypeScript、Vite、Vue Router 与 Pinia 构建的学生端。页面包含学习工作台、个性化建站路线、章节学习、知识工具箱、在线练习、趣味闯关、发布演练和项目毕业检查。
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+```bash
+npm install
+npm run dev
+```
+
+开发服务默认使用 `http://localhost:5173`，并把 `/api` 代理到 `http://localhost:8080`。可通过 `LEARNPATH_API_TARGET` 修改后端地址。
+
+提交前运行完整检查：
+
+```bash
+npm run check
+```

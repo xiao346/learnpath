@@ -112,7 +112,7 @@ public class CourseService {
                 chapter.getOverview(), chapter.getBeginnerIntro(), chapter.getBeginnerAnalogy(),
                 lines(chapter.getBeginnerWalkthrough()), lines(chapter.getObjectives()), keyPoints,
                 workedExample(chapter, keyPoints), learningPath(keyPoints),
-                knowledgeAnalyses(chapter, keyPoints),
+                knowledgeAnalyses(course.getTitle(), chapter, keyPoints),
                 studySections(chapter, keyPoints), selfCheckQuestions(chapter, keyPoints),
                 chapter.getPracticeTask(),
                 chapterPosition == 0 ? null : chapters.get(chapterPosition - 1).getId(),
@@ -209,17 +209,120 @@ public class CourseService {
         return path;
     }
 
-    private List<KnowledgeAnalysisView> knowledgeAnalyses(Chapter chapter, List<String> points) {
+    private List<KnowledgeAnalysisView> knowledgeAnalyses(String courseTitle, Chapter chapter, List<String> points) {
         BeginnerLessonCatalog.Guide guide = BeginnerLessonCatalog.guideFor(chapter.getTitle());
         java.util.ArrayList<KnowledgeAnalysisView> analyses = new java.util.ArrayList<>();
         for (int index = 0; index < points.size(); index++) {
             String point = points.get(index);
             analyses.add(new KnowledgeAnalysisView(
                     "analysis-" + (index + 1), conceptTitle(point), category(index),
-                    point, diagramSteps(point),
-                    relatedExample(index, guide, chapter.getPracticeTask(), point)));
+                    point, plainExplanation(courseTitle, index, point, guide), whyItMatters(courseTitle, index, point, guide),
+                    diagramSteps(point), relatedExample(index, guide, chapter.getPracticeTask(), point),
+                    commonMistake(courseTitle, index), checkQuestion(courseTitle, index, point)));
         }
         return analyses;
+    }
+
+    private String plainExplanation(String courseTitle, int index, String point, BeginnerLessonCatalog.Guide guide) {
+        List<String> parts = clauses(point);
+        String first = parts.isEmpty() ? point : parts.get(0);
+        String rest = parts.size() < 2 ? "把它放进本章的最小示例中观察输入和结果。" : String.join("；", parts.subList(1, parts.size()));
+        String learningAction = domainLearningAction(courseTitle);
+        return switch (index % 3) {
+            case 0 -> "先不用背名词。这里首先要认清的是“" + first + "”。" + learningAction + "，再观察：" + rest + "；能够指出它在案例中的具体位置，就完成了第一遍理解。";
+            case 1 -> "这一点讲的是方法怎样运作。先借助生活类比建立直觉，再回到准确规则：" + first + "；" + rest + "。接着" + learningAction + "，逐步核对规则是否真的产生了示例结果。";
+            default -> "这一点用来判断什么时候能用、什么时候会出错。核心观察是“" + first + "”，随后检查“" + rest + "”。请" + domainBoundaryAction(courseTitle) + "，不要只看最顺利的一次结果。";
+        };
+    }
+
+    private String whyItMatters(String courseTitle, int index, String point, BeginnerLessonCatalog.Guide guide) {
+        String consequence = switch (courseTitle) {
+            case "大学英语进阶" -> "会出现每个单词都认识，却抓不住句子功能、文章观点或听众真正需要的信息";
+            case "Python 数据分析基础" -> "代码可能暂时跑通，但换一份数据就得到错误结果或直接报错";
+            case "软件工程与 Git 协作" -> "团队成员会对需求、提交历史或交付状态产生不同理解";
+            case "人工智能导论" -> "模型指标看起来很好，却可能学错目标、泄露答案或伤害特定群体";
+            case "数据库原理" -> "查询结果、数据约束或并发更新会在真实数据量下出现错误";
+            case "计算机网络" -> "只会背协议名，却无法根据报文和现象定位通信失败的位置";
+            case "Java Web 应用开发" -> "接口在正常请求下能运行，遇到无效输入、越权或依赖故障就失去控制";
+            default -> "答案可能碰巧正确，但数据规模、顺序或边界一变化就会失效";
+        };
+        return switch (index % 3) {
+            case 0 -> "它决定你能否看懂后面的步骤。若一开始认错处理对象，后续即使记住公式、句型或命令，也会用在错误的问题上。";
+            case 1 -> "它解释结果为什么出现，而不是只给出答案。否则" + consequence + "。";
+            default -> "真实任务不会只给最顺利的输入。把这个知识点放回本章案例检查，可以提前发现限制、代价和不适用条件。";
+        };
+    }
+
+    private String commonMistake(String courseTitle, int index) {
+        String[] mistakes = switch (courseTitle) {
+            case "大学英语进阶" -> new String[]{
+                    "逐词翻译后就停下，没有标出句子或段落在完成什么沟通任务。修正：圈出主旨句、连接词和证据，再用一句中文概括功能。",
+                    "机械套用句型，却没有替换场景、对象和语气。修正：保留结构，至少替换两项信息并朗读检查是否自然。",
+                    "只检查语法，不检查观点是否有证据、内容是否回应任务。修正：先验收意思与结构，最后再改语言。"};
+            case "Python 数据分析基础" -> new String[]{
+                    "只复制代码，没有观察变量类型、形状和中间结果。修正：每执行一步就打印一个最小结果。",
+                    "示例数据能运行就认为完成，没有检查缺失值、空表或类型错误。修正：主动构造一个异常输入。",
+                    "图表或数字已经生成，却没有核对单位、口径和数据行数。修正：把代码结果与手算的小样本比较。"};
+            case "软件工程与 Git 协作" -> new String[]{
+                    "只记命令，不画工作区、暂存区、提交和分支之间的变化。修正：每条命令后查看状态或图形历史。",
+                    "冲突出现时直接选择一侧，丢掉另一侧意图。修正：先理解两边目标，再写出同时满足需求的最终版本。",
+                    "流程做完却没有测试证据和可追踪说明。修正：让每个需求都能对应到提交、评审和测试结果。"};
+            case "人工智能导论" -> new String[]{
+                    "只看模型名称，没有先写清输入、输出和成功标准。修正：先用一条具体样本描述完整任务。",
+                    "把训练集上的高分当作真实能力。修正：保留独立测试集，并检查数据泄漏。",
+                    "只看平均指标，忽略失败样本与群体差异。修正：分类型、分人群查看错误。"};
+            case "数据库原理" -> new String[]{
+                    "只画一张表，没有标主键、外键和业务约束。修正：为每个编号写清唯一性和引用方向。",
+                    "SQL 能返回结果就认为正确，未检查重复行、NULL 和连接范围。修正：用三到五行小数据手算预期结果。",
+                    "只测单用户正常操作，忽略事务中断和并发更新。修正：加入失败回滚与两个会话的实验。"};
+            case "计算机网络" -> new String[]{
+                    "把协议名称背成清单，却说不出它处理的数据单元和所在位置。修正：沿一次网页访问逐层标注。",
+                    "把相邻设备通信和跨网络转发混在一起。修正：分别画 MAC 帧的下一跳与 IP 包的最终目的。",
+                    "只看成功抓包，不分析超时、丢包和错误响应。修正：人为制造一个失败并定位发生层次。"};
+            case "Java Web 应用开发" -> new String[]{
+                    "只看注解名称，没有沿一次请求追踪到控制器、服务和数据库。修正：画出每层输入与输出。",
+                    "接口正常返回 200 就认为完成。修正：补测无效参数、未登录、越权、404 和依赖失败。",
+                    "把前端隐藏按钮当成权限控制。修正：在后端为每个受保护请求重新验证身份和资源归属。"};
+            default -> new String[]{
+                    "只背结论，没有在一组具体数据上演示变化。修正：把输入、每一步处理和输出写在同一张纸上。",
+                    "直接套步骤，却没有检查数据是否满足前提。修正：每一步都写一句“因为……所以……”。",
+                    "只测试正常数据。修正：再加入空数据、重复值、极端规模或失败操作中的至少一种。"};
+        };
+        return mistakes[index % 3];
+    }
+
+    private String domainLearningAction(String courseTitle) {
+        return switch (courseTitle) {
+            case "大学英语进阶" -> "直接在示例句或段落中圈出关键词与功能句";
+            case "Python 数据分析基础" -> "在解释器中运行最小代码并查看变量的实际值";
+            case "软件工程与 Git 协作" -> "画出提交、分支或流水线在操作前后的变化";
+            case "人工智能导论" -> "先写清输入、模型处理和输出，再放入一条具体样本";
+            case "数据库原理" -> "用三到五行小表格演示查询或更新前后的变化";
+            case "计算机网络" -> "沿一条真实报文标出它经过的设备、协议和字段";
+            case "Java Web 应用开发" -> "沿一次 HTTP 请求追踪控制器、服务与数据层";
+            default -> "把示例数据逐项写出来并画出变化前后的状态";
+        };
+    }
+
+    private String domainBoundaryAction(String courseTitle) {
+        return switch (courseTitle) {
+            case "大学英语进阶" -> "换一个主题或听众重写示例，并检查表达是否仍自然";
+            case "Python 数据分析基础" -> "再运行空数据、缺失值或错误类型中的一种";
+            case "软件工程与 Git 协作" -> "模拟一次需求变化、合并冲突或流水线失败";
+            case "人工智能导论" -> "检查一条失败样本和一个群体差异";
+            case "数据库原理" -> "加入重复值、NULL、事务失败或并发操作中的一种";
+            case "计算机网络" -> "比较一次成功报文与一次超时或错误报文";
+            case "Java Web 应用开发" -> "补测无效输入、未登录、越权或依赖故障中的一种";
+            default -> "换一组数据，并加入空值、重复值或极端规模中的一种";
+        };
+    }
+
+    private String checkQuestion(String courseTitle, int index, String point) {
+        return switch (index % 3) {
+            case 0 -> "你能不看原文，用本课程中的一个具体对象解释“" + conceptTitle(point) + "”吗？";
+            case 1 -> "如果把案例中的数据换一组，你能按图中的顺序重新做一遍吗？";
+            default -> "你能按本课程的验收方式，举出一个不适用或容易出错的情况吗？";
+        };
     }
 
     private List<DiagramStepView> diagramSteps(String point) {

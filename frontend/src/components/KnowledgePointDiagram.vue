@@ -1,48 +1,65 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { DiagramStep } from '../services/api'
+import { computed, ref, watch } from 'vue'
+import { illustrationFor } from '../content/knowledgeIllustrations'
+import { pictureReadings } from '../content/pictureReadings'
 
-const props = defineProps<{ id: string; title: string; steps: DiagramStep[] }>()
-
-const width = 760
-const gap = 24
-const nodeWidth = computed(() => props.steps.length === 2 ? 280 : props.steps.length === 3 ? 210 : 155)
-const startX = computed(() => (width - (nodeWidth.value * props.steps.length + gap * (props.steps.length - 1))) / 2)
-const nodeX = (index: number) => startX.value + index * (nodeWidth.value + gap)
-const markerId = computed(() => `point-arrow-${props.id}`)
+const props = defineProps<{ chapterTitle: string; courseTitle: string; pointIndex: number; title: string }>()
+const picture = computed(() => illustrationFor(props.courseTitle, props.chapterTitle, props.pointIndex))
+const reading = computed(() => pictureReadings[props.chapterTitle]?.[props.pointIndex])
+const dialog = ref<HTMLDialogElement | null>(null)
+const trigger = ref<HTMLButtonElement | null>(null)
+const failed = ref(false)
+const crop = computed(() => {
+  const frame = picture.value?.frame
+  if (!frame) return {}
+  return { left: `-${frame.x / frame.width * 100}%`, top: `-${frame.y / frame.height * 100}%`, width: `${1330 / frame.width * 100}%`, height: `${1182 / frame.height * 100}%` }
+})
+function close() { if (dialog.value?.open) { dialog.value.close(); trigger.value?.focus() } }
+watch(() => [props.chapterTitle, props.pointIndex], () => { close(); failed.value = false })
 </script>
 
 <template>
-  <figure class="point-diagram">
-    <svg viewBox="0 0 760 210" role="img" :aria-label="`${title}图解`">
-      <defs>
-        <marker :id="markerId" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
-          <path d="M0,0 L10,5 L0,10 Z" fill="#7289d9" />
-        </marker>
-      </defs>
-      <line
-        v-for="(_, index) in steps.slice(0, -1)" :key="`line-${index}`"
-        :x1="nodeX(index) + nodeWidth" y1="105" :x2="nodeX(index + 1) - 7" y2="105"
-        class="diagram-line" :style="{ markerEnd: `url(#${markerId})` }"
-      />
-      <foreignObject v-for="(step, index) in steps" :key="`${id}-${index}`" :x="nodeX(index)" y="30" :width="nodeWidth" height="150">
-        <div xmlns="http://www.w3.org/1999/xhtml" class="diagram-node" :class="`tone-${index % 3}`">
-          <small>{{ step.label }}</small><strong>{{ step.content }}</strong>
-        </div>
-      </foreignObject>
-    </svg>
-    <figcaption>{{ title }} · 图解</figcaption>
+  <figure v-if="picture" class="knowledge-picture">
+    <button v-if="!failed" ref="trigger" class="picture-trigger" type="button" :aria-label="`放大图片：${picture.alt}`" @click="dialog?.showModal()">
+      <span class="picture-window" :style="{ aspectRatio: `${picture.frame.width} / ${picture.frame.height}` }">
+        <img :src="picture.src" :alt="picture.alt" :style="crop" loading="lazy" decoding="async" @error="failed = true" />
+      </span>
+      <span class="picture-zoom" aria-hidden="true">⤢ 点击放大</span>
+    </button>
+    <p v-else class="picture-error">图片暂时未能加载，请刷新页面重试。</p>
+    <figcaption><span>看图理解</span><p>{{ picture.caption }}</p></figcaption>
+    <div v-if="reading" class="picture-reading"><h5>例子与解析</h5><p>{{ reading }}</p></div>
+    <dialog ref="dialog" class="picture-dialog" :aria-label="title" @click="event => { if (event.target === dialog) close() }" @cancel.prevent="close">
+      <header><strong>{{ title }}</strong><button autofocus type="button" aria-label="关闭大图" @click="close">关闭 ×</button></header>
+      <div class="picture-window" :style="{ aspectRatio: `${picture.frame.width} / ${picture.frame.height}` }"><img :src="picture.src" :alt="picture.alt" :style="crop" decoding="async" /></div>
+      <p>{{ picture.caption }}</p>
+      <section v-if="reading" class="enlarged-reading"><h5>例子与解析</h5><p>{{ reading }}</p></section>
+    </dialog>
   </figure>
 </template>
 
 <style scoped>
-.point-diagram { margin: 14px 0 0; border: 1px solid rgba(105,139,220,.22); border-radius: 14px; overflow-x: auto; background: radial-gradient(circle at 50% 20%, rgba(62,137,183,.12), transparent 60%), #080d2a; }
-.point-diagram svg { width: 100%; min-width: 660px; height: auto; display: block; }
-.diagram-line { stroke: #7289d9; stroke-width: 3; stroke-linecap: round; }
-.diagram-node { height: 100%; box-sizing: border-box; padding: 16px 14px; display: flex; flex-direction: column; justify-content: center; border: 1px solid rgba(120,151,232,.27); border-radius: 14px; color: #dfe5f8; background: linear-gradient(145deg, #202a62, #131a43); text-align: center; font-family: Inter, "Microsoft YaHei", sans-serif; }
-.diagram-node small { color: #89dbea; font-size: 10px; letter-spacing: .8px; }
-.diagram-node strong { margin-top: 9px; font-size: 13px; line-height: 1.7; }
-.tone-1 { border-color: rgba(146,127,238,.3); background: linear-gradient(145deg, #292360, #181842); }
-.tone-2 { border-color: rgba(75,199,166,.25); background: linear-gradient(145deg, #194153, #111d3f); }
-figcaption { padding: 0 12px 12px; color: #7180ac; font-size: 9px; text-align: center; }
+.knowledge-picture { margin: 22px 0; }
+.picture-trigger { display: block; position: relative; width: min(100%, 680px); margin-inline: auto; padding: 0; border: 0; border-radius: 14px; overflow: hidden; background: #fbf2df; cursor: zoom-in; }
+.picture-window { display: block; position: relative; aspect-ratio: 3 / 2; overflow: hidden; width: 100%; background: #fbf2df; }
+.picture-window img { position: absolute; width: 300%; height: 400%; max-width: none; object-fit: fill; display: block; }
+.picture-zoom { position: absolute; right: 12px; bottom: 12px; padding: 7px 11px; border-radius: 20px; background: rgba(18,29,49,.82); color: #fff; font-size: 12px; }
+.picture-trigger:focus-visible { outline: 3px solid #7bdacd; outline-offset: 5px; }
+figcaption { max-width: 680px; margin: 13px auto 0; display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: baseline; text-align: left; }
+figcaption > span { color: #88e2cc; font-size: 12px; font-weight: 600; white-space: nowrap; }
+figcaption p { margin: 0; color: #c3cee8; font-size: 14px; line-height: 1.9; }
+.picture-reading { max-width: 680px; margin: 24px auto 0; padding-top: 18px; border-top: 1px solid rgba(136,226,204,.2); }
+.picture-reading h5, .enlarged-reading h5 { margin: 0 0 8px; color: #a8ead8; font-size: 14px; font-weight: 600; }
+.picture-reading p { margin: 0; color: #e2e9fa; font-size: 16px; line-height: 2; overflow-wrap: anywhere; }
+.enlarged-reading { margin-top: 20px; padding-top: 16px; border-top: 1px solid #405472; }
+.picture-error { color: #e7b486; font-size: 14px; }
+.picture-dialog { width: min(900px, calc(100vw - 32px)); max-height: calc(100dvh - 40px); box-sizing: border-box; padding: 20px; border: 1px solid #4e638c; border-radius: 18px; color: #edf2ff; background: #131d38; overflow-y: auto; }
+.picture-dialog::backdrop { background: rgba(2,7,20,.86); }
+.picture-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 15px; }
+.picture-dialog strong { font-size: 17px; line-height: 1.6; }
+.picture-dialog button { padding: 8px 12px; white-space: nowrap; color: #fff; border: 1px solid #667aa7; border-radius: 8px; background: #263859; cursor: pointer; }
+.picture-dialog p { margin: 15px 0 0; font-size: 15px; line-height: 1.8; }
+.picture-dialog .picture-window { border-radius: 10px; }
+@media (max-width: 600px) { figcaption { grid-template-columns: 1fr; gap: 5px; } .picture-dialog { padding: 12px; } }
+@media print { .picture-zoom, .picture-dialog { display: none !important; } .picture-trigger { break-inside: avoid; } figcaption p, figcaption > span, .picture-reading h5, .picture-reading p { color: #222; } }
 </style>

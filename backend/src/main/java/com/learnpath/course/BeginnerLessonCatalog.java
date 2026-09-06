@@ -79,7 +79,11 @@ public final class BeginnerLessonCatalog {
 
     public static Guide guideFor(String title) {
         Guide guide = GUIDES.get(title);
-        if (guide == null) throw new IllegalArgumentException("缺少零基础章节引导：" + title);
+        if (guide == null) {
+            WebDevelopmentLessonCatalog.Lesson lesson = WebDevelopmentLessonCatalog.lessonFor(title);
+            if (lesson == null) throw new IllegalArgumentException("缺少零基础章节引导：" + title);
+            return new Guide(lesson.intro(), lesson.analogy(), lesson.example());
+        }
         return guide;
     }
 

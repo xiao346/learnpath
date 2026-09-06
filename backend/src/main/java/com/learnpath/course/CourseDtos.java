@@ -100,8 +100,12 @@ public final class CourseDtos {
             String title,
             String category,
             String conclusion,
+            String plainExplanation,
+            String whyItMatters,
             List<DiagramStepView> diagram,
-            String example
+            String example,
+            String commonMistake,
+            String checkQuestion
     ) {
     }
 
