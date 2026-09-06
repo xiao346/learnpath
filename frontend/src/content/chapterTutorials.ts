@@ -10,6 +10,10 @@ export type TutorialSection = {
   code?: { title: string; text: string }
   table?: { headings: string[]; rows: string[][] }
   check?: { question: string; answer: string }
+  conceptDiagram?: { label: string; content: string }[]
+  visualIndex?: number
+  example?: string
+  warning?: string
 }
 export type ChapterTutorial = {
   lead: string
@@ -17,6 +21,13 @@ export type ChapterTutorial = {
   sections: TutorialSection[]
   recap: string[]
   sources: { label: string; href: string }[]
+  guidedPractice?: {
+    title: string
+    scenario: string
+    steps: { label: string; action: string; explanation: string }[]
+    result: string
+    tryIt: string
+  }
 }
 
 /** Independently authored long-form lessons. Missing chapters retain their existing content. */

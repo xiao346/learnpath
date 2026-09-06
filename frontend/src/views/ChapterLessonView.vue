@@ -2,12 +2,12 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, type ChapterLesson } from '../services/api'
-import KnowledgePointDiagram from '../components/KnowledgePointDiagram.vue'
 import { chapterChecks } from '../content/chapterChecks'
 import ChapterTutorial from '../components/ChapterTutorial.vue'
 import { chapterTutorials } from '../content/chapterTutorials'
 import { networkFoundations } from '../content/networkFoundations'
 import { databaseTutorials } from '../content/databaseTutorials'
+import { adaptiveTutorialFor } from '../content/adaptiveCourseTutorials'
 
 const route = useRoute()
 const router = useRouter()
@@ -16,7 +16,13 @@ const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
 const check = computed(() => lesson.value ? chapterChecks[lesson.value.chapterTitle] : undefined)
-const tutorial = computed(() => lesson.value ? chapterTutorials[lesson.value.chapterTitle] ?? networkFoundations[lesson.value.chapterTitle] ?? databaseTutorials[lesson.value.chapterTitle] : undefined)
+const tutorial = computed(() => {
+  if (!lesson.value) return undefined
+  return chapterTutorials[lesson.value.chapterTitle]
+    ?? networkFoundations[lesson.value.chapterTitle]
+    ?? databaseTutorials[lesson.value.chapterTitle]
+    ?? adaptiveTutorialFor(lesson.value)
+})
 
 async function loadLesson() {
   loading.value = true
@@ -55,10 +61,6 @@ function goToChapter(chapterId: number | null) {
   if (chapterId && lesson.value) router.push(`/courses/${lesson.value.courseId}/chapters/${chapterId}`)
 }
 
-function printDocument() {
-  window.print()
-}
-
 onMounted(loadLesson)
 watch(() => route.params.chapterId, loadLesson)
 </script>
@@ -76,28 +78,7 @@ watch(() => route.params.chapterId, loadLesson)
 
       <div class="lesson-grid">
         <main class="lesson-content">
-          <ChapterTutorial v-if="tutorial" :key="lesson.chapterTitle" :tutorial="tutorial" :chapter-title="lesson.chapterTitle" />
-          <template v-else>
-          <section class="glass-card lesson-section beginner-section">
-            <div class="beginner-badge"><i></i><span>零基础学习模式</span><small>不需要提前懂术语，按顺序往下学</small></div>
-            <div class="lesson-heading"><span>01</span><div><small>START HERE</small><h3>从熟悉的场景开始</h3></div></div>
-            <div class="beginner-intro"><span>一句话说明</span><p>{{ lesson.beginnerIntro }}</p></div>
-            <div class="analogy-card"><span>💡</span><div><small>生活类比</small><p>{{ lesson.beginnerAnalogy }}</p></div></div>
-          </section>
-
-          <section class="glass-card lesson-section analysis-section">
-            <div class="document-toolbar"><div class="lesson-heading"><span>02</span><div><small>LEARN ONE BY ONE</small><h3>对照图片，逐个理解知识点</h3></div></div><button type="button" @click="printDocument">打印 / 保存 PDF</button></div>
-            <p class="section-intro">先认清图中物体对应什么，再跟着具体数据或操作推演。图下注释解释场景，例子讲清过程与原因，最后用准确结论核对理解。图片可点击放大。</p>
-            <div class="analysis-list">
-              <article v-for="(item, index) in lesson.knowledgeAnalyses" :key="item.id" class="analysis-card">
-                <header><span>{{ String(index + 1).padStart(2, '0') }}</span><div><small>{{ item.category }}</small><h4>{{ item.title }}</h4></div></header>
-                <KnowledgePointDiagram :chapter-title="lesson.chapterTitle" :course-title="lesson.courseTitle" :point-index="index" :title="item.title" />
-                <div class="knowledge-definition"><small>回到知识点：核对准确结论</small><p>{{ item.conclusion }}</p></div>
-              </article>
-            </div>
-          </section>
-
-          </template>
+          <ChapterTutorial v-if="tutorial" :key="lesson.chapterTitle" :tutorial="tutorial" :chapter-title="lesson.chapterTitle" :course-title="lesson.courseTitle" />
           <section v-if="check" class="glass-card lesson-section review-section">
             <div class="lesson-heading"><span>03</span><div><small>CHECK YOURSELF</small><h3>换个例子，检查是否真的理解</h3></div></div>
             <div class="chapter-check"><p>{{ check[0] }}</p><small>先自己作答，再展开解析核对结果与原因。</small><details :key="lesson.chapterTitle"><summary>展开答案与解析</summary><p>{{ check[1] }}</p></details></div>

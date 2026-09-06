@@ -2,6 +2,7 @@ package com.learnpath;
 
 import com.learnpath.course.CourseRepository;
 import com.learnpath.course.CourseResourceRepository;
+import com.learnpath.course.CourseService;
 import com.learnpath.practice.PracticeQuestionRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,10 +26,15 @@ class LearnpathBackendApplicationTests {
 	@Autowired
 	private PracticeQuestionRepository questionRepository;
 
+	@Autowired
+	private CourseService courseService;
+
 	@Test
 	void contextLoads() {
 		assertThat(courseRepository.count()).isEqualTo(12);
-		courseRepository.findAllByPublishedTrueOrderByIdAsc().forEach(course -> {
+		var courses = courseRepository.findAllByPublishedTrueOrderByIdAsc();
+		assertThat(courses.stream().mapToInt(course -> course.getChapters().size()).sum()).isEqualTo(83);
+		courses.forEach(course -> {
 			assertThat(resourceRepository.countByCourseId(course.getId())).isEqualTo(5);
 			course.getChapters().forEach(chapter -> {
 				assertThat(chapter.getOverview()).isNotBlank();
@@ -38,6 +44,17 @@ class LearnpathBackendApplicationTests {
 				assertThat(chapter.getBeginnerIntro()).isNotBlank();
 				assertThat(chapter.getBeginnerAnalogy()).isNotBlank();
 				assertThat(chapter.getBeginnerWalkthrough().lines()).hasSizeGreaterThanOrEqualTo(4);
+				var lesson = courseService.lesson(0L, course.getId(), chapter.getId());
+				assertThat(lesson.workedExample().steps()).hasSizeGreaterThanOrEqualTo(4);
+				assertThat(lesson.knowledgeAnalyses()).hasSizeGreaterThanOrEqualTo(6).allSatisfy(item -> {
+					assertThat(item.conclusion()).isNotBlank();
+					assertThat(item.plainExplanation()).hasSizeGreaterThan(40);
+					assertThat(item.whyItMatters()).hasSizeGreaterThan(30);
+					assertThat(item.diagram()).hasSizeGreaterThanOrEqualTo(2);
+					assertThat(item.example()).isNotBlank();
+					assertThat(item.commonMistake()).hasSizeGreaterThan(30);
+					assertThat(item.checkQuestion()).isNotBlank();
+				});
 			});
 		});
 		assertThat(questionRepository.count()).isGreaterThanOrEqualTo(96);

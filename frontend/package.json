@@ -4,8 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "check": "npm run test:lessons && npm run test:network && npm run test:database && npm run build",
+    "check": "npm run test:lessons && npm run test:depth && npm run test:network && npm run test:database && npm run build",
     "test:lessons": "node scripts/check-lesson-content.mjs",
+    "test:depth": "node scripts/check-adaptive-tutorials.mjs",
     "test:network": "node scripts/check-network-tutorials.mjs",
     "test:database": "node scripts/check-database-tutorials.mjs",
     "dev": "vite",
