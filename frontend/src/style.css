@@ -284,7 +284,7 @@ a { color: inherit; text-decoration: none; }
 .lesson-hero aside span { color: #7784b1; font-size: 9px; }
 .lesson-hero aside em { margin-top: 9px; padding: 4px 8px; border-radius: 8px; color: #afa8ff; background: rgba(112,96,239,.15); font-size: 9px; font-style: normal; }
 .lesson-hero aside em.done { color: #83e4c4; background: rgba(66,188,149,.12); }
-.lesson-grid { margin-top: 18px; display: grid; grid-template-columns: minmax(0, 1fr) 285px; gap: 18px; align-items: start; }
+.lesson-grid { margin-top: 18px; }
 .lesson-content { display: grid; gap: 18px; }
 .lesson-section { padding: 27px; border-radius: 20px; }
 .visual-opening { padding: 0; }
@@ -413,16 +413,16 @@ a { color: inherit; text-decoration: none; }
 .task-tip { margin-top: 17px; padding: 14px 16px; border-left: 2px solid #6d8cff; border-radius: 0 11px 11px 0; background: rgba(72,91,192,.09); }
 .task-tip span { color: #939cff; font-size: 9px; }
 .task-tip p { margin: 6px 0 0; color: #7f8bb5; font-size: 10px; line-height: 1.7; }
-.lesson-side { position: sticky; top: 20px; display: grid; gap: 13px; }
-.lesson-checkpoint, .lesson-navigation { padding: 22px; border-radius: 18px; }
-.lesson-checkpoint h3 { margin: 18px 0 9px; font-size: 18px; }
-.lesson-checkpoint p { margin: 0 0 20px; color: #7e8ab3; font-size: 11px; line-height: 1.75; }
-.lesson-checkpoint button { width: 100%; padding: 12px 10px; border: 1px solid rgba(255,255,255,.12); border-radius: 11px; color: white; background: linear-gradient(105deg, #665fff, #9066f7); font-size: 11px; }
-.lesson-checkpoint button:disabled { opacity: .5; cursor: default; }
-.lesson-checkpoint > small { display: block; margin-top: 10px; color: #ff9db8; font-size: 9px; }
+.lesson-finish { margin-top: 18px; padding: 26px 28px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 430px); align-items: center; gap: 32px; border-radius: 20px; background: radial-gradient(circle at 100% 0, rgba(106,87,236,.16), transparent 42%), linear-gradient(125deg, rgba(27,38,84,.72), rgba(16,20,53,.62)); }
+.lesson-finish-copy h3 { margin: 16px 0 7px; font-size: 20px; }
+.lesson-finish-copy p { max-width: 620px; margin: 0; color: #8793bb; font-size: 12px; line-height: 1.8; }
+.lesson-finish-actions { display: grid; gap: 9px; }
+.lesson-complete-button { width: 100%; min-height: 44px; padding: 11px 16px; border: 1px solid rgba(255,255,255,.12); border-radius: 11px; color: white; background: linear-gradient(105deg, #665fff, #9066f7); box-shadow: 0 12px 28px rgba(87,71,223,.2); font-size: 12px; }
+.lesson-complete-button:disabled { opacity: .5; cursor: default; box-shadow: none; }
 .lesson-navigation { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.lesson-navigation button { padding: 9px; border: 1px solid rgba(151,166,234,.12); border-radius: 9px; color: #a7b0d3; background: rgba(8,12,38,.28); font-size: 10px; }
+.lesson-navigation button { min-height: 38px; padding: 9px 14px; border: 1px solid rgba(151,166,234,.12); border-radius: 9px; color: #a7b0d3; background: rgba(8,12,38,.28); font-size: 10px; }
 .lesson-navigation button:disabled { opacity: .35; cursor: default; }
+.lesson-finish-actions > small { color: #ff9db8; font-size: 10px; }
 .learning-card { position: sticky; top: 20px; padding: 25px; }
 .learning-card h3 { margin: 18px 0 9px; font-size: 19px; }
 .learning-card p { margin: 0 0 22px; color: #7e8ab3; font-size: 12px; line-height: 1.7; }
@@ -535,8 +535,7 @@ a { color: inherit; text-decoration: none; }
 @keyframes page-in { from { opacity: 0; transform: translateY(8px); } }
 
 @media (max-width: 1350px) {
-  .lesson-grid { grid-template-columns: 1fr; }
-  .lesson-side { position: static; grid-template-columns: 1fr 1fr; }
+  .lesson-finish { grid-template-columns: minmax(0, 1fr) minmax(320px, 400px); }
 }
 
 @media (max-width: 1100px) {
@@ -547,8 +546,8 @@ a { color: inherit; text-decoration: none; }
   .recommend-card { grid-column: auto; }
   .course-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .detail-columns { grid-template-columns: 1fr; }
-  .lesson-grid { grid-template-columns: 1fr; }
-  .lesson-side { position: static; }
+  .lesson-finish { grid-template-columns: 1fr; gap: 20px; }
+  .lesson-finish-actions { width: 100%; }
   .learning-card { position: static; }
   .practice-layout { grid-template-columns: 1fr; }
   .practice-side { grid-template-columns: repeat(2, 1fr); }
@@ -598,7 +597,7 @@ a { color: inherit; text-decoration: none; }
   .visual-opening { padding: 0; }
   .analysis-card { padding: 17px; }
   .diagram-reading li { grid-template-columns: 1fr; gap: 2px; }
-  .lesson-side { grid-template-columns: 1fr; }
+  .lesson-finish { padding: 20px; }
   .practice-hero { min-height: 190px; padding: 23px; flex-direction: column; align-items: stretch; }
   .practice-hero h2 { font-size: 24px; }
   .practice-stats { width: 100%; }
@@ -618,7 +617,7 @@ a { color: inherit; text-decoration: none; }
 
 @media print {
   body { color: #111; background: white; }
-  .sidebar, .topbar, .back-link, .lesson-side, .lesson-hero > aside, .document-toolbar > button { display: none !important; }
+  .sidebar, .topbar, .back-link, .lesson-finish, .lesson-hero > aside, .document-toolbar > button { display: none !important; }
   .dashboard-shell, .dashboard-main { padding: 0; background: white; }
   .lesson-hero, .lesson-section, .document-section, .self-check { color: #111; border: 1px solid #d8dbe6; background: white; box-shadow: none; break-inside: avoid; }
   .lesson-hero h2, .lesson-heading h3, .document-section h4 { color: #111; }

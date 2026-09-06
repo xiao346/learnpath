@@ -110,20 +110,26 @@ watch(() => route.params.chapterId, loadLesson)
             <div class="task-tip"><span>验收标准</span><p>能够独立完成任务，并用自己的话解释关键步骤与结果；遇到错误时记录原因和修正方法。{{ tutorial ? '完成练习并核对解析后再标记本章。' : '四项都完成后再标记本章。' }}</p></div>
           </section>
         </main>
-
-        <aside class="lesson-side">
-          <section class="glass-card lesson-checkpoint"><span class="eyebrow"><i></i> 学习检查点</span><h3>{{ lesson.completed ? '本节已掌握' : '完成阅读与练习' }}</h3><p>正文、知识要点和动手任务都完成后，再标记本节，形成真实学习闭环。</p><button :disabled="saving || lesson.completed" @click="completeLesson">{{ saving ? '正在保存…' : lesson.completed ? '本节已完成' : lesson.nextChapterId ? '完成并学习下一章 →' : '完成本课程' }}</button><small v-if="error">{{ error }}</small></section>
-          <nav class="glass-card lesson-navigation" aria-label="章节导航"><button :disabled="!lesson.previousChapterId" @click="goToChapter(lesson.previousChapterId)">← 上一章</button><button :disabled="!lesson.nextChapterId" @click="goToChapter(lesson.nextChapterId)">下一章 →</button></nav>
-        </aside>
       </div>
+
+      <footer class="glass-card lesson-finish">
+        <div class="lesson-finish-copy">
+          <span class="eyebrow"><i></i> 学习检查点</span>
+          <h3>{{ lesson.completed ? '本节已掌握' : '完成阅读与练习' }}</h3>
+          <p>正文、知识要点和动手任务都完成后，再标记本节，形成真实学习闭环。</p>
+        </div>
+        <div class="lesson-finish-actions">
+          <button class="lesson-complete-button" :disabled="saving || lesson.completed" @click="completeLesson">{{ saving ? '正在保存…' : lesson.completed ? '本节已完成' : lesson.nextChapterId ? '完成并学习下一章 →' : '完成本课程' }}</button>
+          <nav class="lesson-navigation" aria-label="章节导航"><button :disabled="!lesson.previousChapterId" @click="goToChapter(lesson.previousChapterId)">← 上一章</button><button :disabled="!lesson.nextChapterId" @click="goToChapter(lesson.nextChapterId)">下一章 →</button></nav>
+          <small v-if="error">{{ error }}</small>
+        </div>
+      </footer>
     </template>
   </section>
 </template>
 
 <style scoped>
-.has-tutorial .lesson-grid { grid-template-columns: minmax(0, 1fr) 230px; }
 .has-tutorial .task-acceptance { display: none; }
-@media (max-width: 1200px) { .has-tutorial .lesson-grid { grid-template-columns: 1fr; } .has-tutorial .lesson-side { position: static; } }
 @media print { .has-tutorial .lesson-grid { display: block; } }
 .chapter-check > p { font-size: 17px; line-height: 1.9; color: #e3eafa; }
 .chapter-check > small { color: #a6b7d8; }
