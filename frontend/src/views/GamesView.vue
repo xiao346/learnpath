@@ -2,11 +2,13 @@
 import { computed, onMounted, ref } from 'vue'
 import { completeGameChallenge, loadGameProgress } from '../services/games'
 
-type GameId = 'layout' | 'repair' | 'circuit'
+type GameId = 'layout' | 'repair' | 'circuit' | 'quiz'
 type Alignment = 'flex-start' | 'center' | 'space-between' | 'flex-end'
 
 const activeGame = ref<GameId>('layout')
 const score = ref(0)
+const completedChallengeCount = ref(0)
+const totalChallenges = ref(21)
 const awardedChallenges = new Set<string>()
 const savingChallenge = ref(false)
 const gameError = ref('')
@@ -17,6 +19,8 @@ async function awardOnce(challenge: string) {
   awardedChallenges.clear()
   progress.completedChallenges.forEach((item) => awardedChallenges.add(item))
   score.value = progress.totalScore
+  completedChallengeCount.value = progress.completedCount
+  totalChallenges.value = progress.totalChallenges
 }
 
 const layoutTargets: { value: Alignment; label: string; hint: string }[] = [
@@ -103,10 +107,31 @@ const circuitFeedback = ref('')
 const circuitSolved = ref(false)
 const circuitTarget = computed(() => circuitChallenges[circuitLevel.value])
 
+const courseQuizChallenges = [
+  { course: 'HTML 与 CSS', icon: '</>', question: '想让“查看作品”文字可以点击并跳转，应该使用哪个 HTML 标签？', options: ['<a>', '<p>', '<strong>'], correct: '<a>', explanation: '<a> 是超链接标签，href 属性负责写目标地址。' },
+  { course: 'JavaScript', icon: 'JS', question: '按钮点击后要执行一个函数，浏览器最常用哪个方法监听点击？', options: ['addEventListener', 'queryDatabase', 'setColorOnly'], correct: 'addEventListener', explanation: 'addEventListener 可以把 click 等事件和要执行的函数连接起来。' },
+  { course: 'Vue 3', icon: 'V', question: '在组合式 API 中，哪个工具可以创建会触发页面更新的简单响应式值？', options: ['ref', 'fetch', 'style'], correct: 'ref', explanation: 'ref 包装数据后，修改它的 value 会让使用该数据的界面自动更新。' },
+  { course: 'Java Web', icon: 'J', question: 'Spring Boot 中要让方法处理 GET 请求，最合适的注解是？', options: ['@GetMapping', '@Entity', '@BeanOnly'], correct: '@GetMapping', explanation: '@GetMapping 把一个 GET 地址映射到控制器方法。' },
+  { course: 'FastAPI', icon: 'Py', question: 'FastAPI 中要声明 GET /posts 接口，应该使用哪段装饰器？', options: ["@app.get('/posts')", "@app.table('posts')", "@app.css('/posts')"], correct: "@app.get('/posts')", explanation: '@app.get 会把路径和 Python 函数连接成 GET 接口。' },
+  { course: '数据库原理', icon: 'DB', question: '用户表中需要一个永不重复的编号来识别每位用户，它最适合做什么？', options: ['主键', '备注', '临时变量'], correct: '主键', explanation: '主键必须唯一且不能为空，适合稳定识别一行数据。' },
+  { course: '计算机网络', icon: '⌁', question: '在浏览器输入域名后，先把域名转换为 IP 地址的服务是什么？', options: ['DNS', 'CSS', 'Git'], correct: 'DNS', explanation: 'DNS 像互联网通讯录，把容易记的域名解析为 IP 地址。' },
+  { course: '数据结构与算法', icon: '⌘', question: '网站消息按照“先到先处理”的顺序排队，最贴近哪种数据结构？', options: ['队列', '栈', '二叉树'], correct: '队列', explanation: '队列遵循先进先出，先进入的消息会先被处理。' },
+  { course: '软件工程与 Git', icon: 'Git', question: '准备保存一次清楚的代码版本时，先把修改加入暂存区的命令是？', options: ['git add', 'git clone', 'git delete'], correct: 'git add', explanation: 'git add 选择下一次提交要包含的修改，然后再用 git commit 保存版本。' },
+  { course: 'Python 数据分析', icon: 'Pd', question: '要在 Python 中处理带行和列的二维表格，Pandas 最常用哪个结构？', options: ['DataFrame', 'Set', 'String'], correct: 'DataFrame', explanation: 'DataFrame 用行列组织数据，适合筛选、统计和清洗表格。' },
+  { course: '人工智能导论', icon: 'AI', question: '用已经标注“猫/狗”的图片训练分类器，这属于哪种学习方式？', options: ['监督学习', '随机排序', '网页布局'], correct: '监督学习', explanation: '监督学习从带有正确答案的样本中学习输入与标签的关系。' },
+  { course: '大学英语', icon: 'A+', question: '向访客介绍自己的网站目标，哪一句表达最清楚？', options: ['This website helps students share campus stories.', 'Website very good.', 'I am website.'], correct: 'This website helps students share campus stories.', explanation: '完整句子说明了网站做什么以及帮助谁，适合作品介绍。' },
+]
+const quizLevel = ref(0)
+const quizChoice = ref('')
+const quizFeedback = ref('')
+const quizSolved = ref(false)
+const quizTarget = computed(() => courseQuizChallenges[quizLevel.value])
+
 const gameMeta = [
   { id: 'layout' as GameId, icon: '▦', title: '布局拼拼乐', description: '用 Flex 把元素送到正确位置' },
   { id: 'repair' as GameId, icon: '⌁', title: '样式修理铺', description: '找出让页面变形的 CSS' },
   { id: 'circuit' as GameId, icon: '⚡', title: '按钮机关屋', description: '补上代码，让交互重新工作' },
+  { id: 'quiz' as GameId, icon: '✦', title: '课程闪答', description: '12 门课程各来一道小挑战' },
 ]
 
 function selectLayout(value: Alignment) {
@@ -192,10 +217,38 @@ function nextCircuit() {
   circuitSolved.value = false
 }
 
+async function checkQuiz() {
+  if (!quizChoice.value) return
+  if (quizChoice.value === quizTarget.value.correct) {
+    savingChallenge.value = true
+    gameError.value = ''
+    try {
+      await awardOnce(`quiz-${quizLevel.value}`)
+      quizFeedback.value = `${quizTarget.value.explanation} 成绩已保存到数据库。`
+      quizSolved.value = true
+    } catch (cause) {
+      gameError.value = cause instanceof Error ? cause.message : '游戏成绩保存失败'
+    } finally {
+      savingChallenge.value = false
+    }
+  } else {
+    quizFeedback.value = '还差一点。先想想这个工具在真实项目里负责哪一件事。'
+  }
+}
+
+function nextQuiz() {
+  quizLevel.value = (quizLevel.value + 1) % courseQuizChallenges.length
+  quizChoice.value = ''
+  quizFeedback.value = ''
+  quizSolved.value = false
+}
+
 onMounted(async () => {
   try {
     const progress = await loadGameProgress()
     score.value = progress.totalScore
+    completedChallengeCount.value = progress.completedCount
+    totalChallenges.value = progress.totalChallenges
     progress.completedChallenges.forEach((item) => awardedChallenges.add(item))
   } catch (cause) {
     gameError.value = cause instanceof Error ? cause.message : '游戏进度加载失败'
@@ -205,7 +258,7 @@ onMounted(async () => {
 
 <template>
   <section class="games-page">
-    <header class="journey-heading"><div><span class="eyebrow"><i></i> PLAY AND LEARN</span><h2>趣味闯关</h2><p>用几分钟的小挑战，把抽象知识变成手上的感觉。</p><small v-if="gameError" class="practice-error">{{ gameError }}</small></div><div class="game-score"><small>累计得分</small><strong>{{ score }}</strong><span>XP</span></div></header>
+    <header class="journey-heading"><div><span class="eyebrow"><i></i> PLAY AND LEARN</span><h2>趣味闯关</h2><p>用几分钟的小挑战，把抽象知识变成手上的感觉。</p><small v-if="gameError" class="practice-error">{{ gameError }}</small></div><div class="game-score"><small>完成 {{ completedChallengeCount }}/{{ totalChallenges }} 关</small><strong>{{ score }}</strong><span>XP</span></div></header>
 
     <div class="game-layout">
       <section v-if="activeGame === 'layout'" class="active-game glass-card">
@@ -226,13 +279,21 @@ onMounted(async () => {
         <div class="game-actions"><p :class="{ success: repairSolved }">{{ repairFeedback || '根据故障原因选择，不要只凭代码看起来熟悉。' }}</p><button v-if="!repairSolved" type="button" :disabled="!repairChoice || savingChallenge" @click="checkRepair">{{ savingChallenge ? '正在保存…' : '运行修复' }}</button><button v-else type="button" @click="nextRepair">下一张工单 →</button></div>
       </section>
 
-      <section v-else class="active-game glass-card">
+      <section v-else-if="activeGame === 'circuit'" class="active-game glass-card">
         <div class="game-topline"><div><span>JavaScript 电路台 · 第 {{ circuitLevel + 1 }} / {{ circuitChallenges.length }} 关</span><h3>按钮机关屋</h3></div><em>每题 +150 XP</em></div>
         <div class="mission-card"><span>故障现象</span><strong>{{ circuitTarget.title }}</strong><p>从三段代码中选一段，放进空缺线路。</p></div>
         <div class="circuit-board" :class="{ online: circuitSolved }"><div class="circuit-node"><span>用户</span><strong>CLICK</strong></div><i>→</i><div class="circuit-node missing"><span>缺少代码</span><strong>{{ circuitSolved ? 'CONNECTED' : '???' }}</strong></div><i>→</i><div class="circuit-node"><span>页面</span><strong>{{ circuitSolved ? 'UPDATED' : 'WAITING' }}</strong></div></div>
         <pre class="circuit-code"><code><span>{{ circuitTarget.before }}</span><b>{{ circuitChoice || '// 把正确代码接在这里' }}</b><span v-if="circuitTarget.after">  {{ circuitTarget.after }}</span><span v-if="circuitTarget.closing">{{ circuitTarget.closing }}</span></code></pre>
         <div class="repair-options circuit-options"><span>选择缺失线路</span><button v-for="option in circuitTarget.options" :key="option" type="button" :class="{ selected: circuitChoice === option, correct: circuitSolved && option === circuitTarget.correct }" @click="circuitChoice = option; circuitFeedback = ''; circuitSolved = false"><code>{{ option }}</code></button></div>
         <div class="game-actions"><p :class="{ success: circuitSolved }">{{ circuitFeedback || '想一想：浏览器用哪个方法监听事件或改变状态？' }}</p><button v-if="!circuitSolved" type="button" :disabled="!circuitChoice || savingChallenge" @click="checkCircuit">{{ savingChallenge ? '正在保存…' : '接通机关' }}</button><button v-else type="button" @click="nextCircuit">下一间机关屋 →</button></div>
+      </section>
+
+      <section v-else class="active-game quiz-game glass-card">
+        <div class="game-topline"><div><span>课程知识站 · 第 {{ quizLevel + 1 }} / {{ courseQuizChallenges.length }} 关</span><h3>课程闪答</h3></div><em>每题 +100 XP</em></div>
+        <div class="quiz-course-banner"><span>{{ quizTarget.icon }}</span><div><small>本题来自</small><strong>{{ quizTarget.course }}</strong></div><i>{{ String(quizLevel + 1).padStart(2, '0') }}</i></div>
+        <div class="quiz-question"><span>遇到这个项目情境，你会怎么选？</span><h4>{{ quizTarget.question }}</h4></div>
+        <div class="quiz-options"><button v-for="(option, index) in quizTarget.options" :key="option" type="button" :class="{ selected: quizChoice === option, correct: quizSolved && option === quizTarget.correct }" @click="quizChoice = option; quizFeedback = ''; quizSolved = false"><span>{{ String.fromCharCode(65 + index) }}</span><strong>{{ option }}</strong></button></div>
+        <div class="game-actions quiz-actions"><p :class="{ success: quizSolved }">{{ quizFeedback || '先联系课程中的真实用途，再选择答案。' }}</p><button v-if="!quizSolved" type="button" :disabled="!quizChoice || savingChallenge" @click="checkQuiz">{{ savingChallenge ? '正在保存…' : '提交答案' }}</button><button v-else type="button" @click="nextQuiz">下一门课程 →</button></div>
       </section>
 
       <aside class="game-library">

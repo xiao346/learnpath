@@ -13,6 +13,7 @@ import FirstWebsiteLessonView from '../views/FirstWebsiteLessonView.vue'
 import JourneyWorkshopView from '../views/JourneyWorkshopView.vue'
 import PublishWorkshopView from '../views/PublishWorkshopView.vue'
 import LaunchWorkshopView from '../views/LaunchWorkshopView.vue'
+import CommunityView from '../views/CommunityView.vue'
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -32,6 +33,7 @@ const router = createRouter({
       { path: 'games', name: 'games', component: GamesView },
       { path: 'knowledge', name: 'knowledge', component: KnowledgeView },
       { path: 'practice', name: 'practice', component: PracticeView },
+      { path: 'community', name: 'community', component: CommunityView },
     ] },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],

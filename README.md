@@ -1,6 +1,6 @@
 # 知途 LearnPath
 
-面向大一计算机学生的项目式学习平台毕业设计，围绕“做出属于自己的第一个网站”组织学习。当前版本包含技术栈入门说明、个性化建站路线、12 门课程、83 个完整章节、60 项配套资源、96 道在线练习题、互动课程、三种趣味闯关、项目上线检查与可持久化学习进度，并提供以 MySQL 为数据源、Redis 为缓存与会话层的 Java API。
+面向大一计算机学生的项目式学习平台毕业设计，围绕“做出属于自己的第一个网站”组织学习。当前版本包含技术栈入门说明、个性化建站路线、12 门课程、83 个完整章节、60 项配套资源、96 道在线练习题、互动课程、21 个趣味小挑战、建站社区、项目上线检查与可持久化学习进度，并提供以 MySQL 为数据源、Redis 为缓存与会话层的 Java API。
 
 学生可以先选择个人作品集、兴趣博客或校园信息站，再选择 Vue 或原生前端、Spring Boot 或 FastAPI，以及 MySQL 或 SQLite。系统会把第一张 HTML 页面、视觉样式、JavaScript 交互、框架、发布、后端、数据库和最终交付检查组成一条可完成的学习路线。
 
@@ -37,9 +37,9 @@ study/
 
 ## 数据存储
 
-MySQL 保存用户、课程、章节、练习、学习任务、课程进度、建站路线、作品内容、样式选择、阶段完成记录和游戏成绩，是业务数据的最终来源。Redis 缓存建站路线和游戏进度，并保存登录会话；缓存不可用时，核心业务仍可直接读写 MySQL。
+MySQL 保存用户、课程、章节、练习、学习任务、课程进度、建站路线、作品内容、样式选择、阶段完成记录、游戏成绩和社区分享，是业务数据的最终来源。Redis 缓存建站路线、游戏进度与社区信息流，并保存登录会话；缓存不可用时，核心业务仍可直接读写 MySQL。
 
-建站相关数据位于 `web_journey` 和 `journey_stage_progress` 表，游戏成绩位于 `user_game_progress` 表。旧版浏览器中的建站数据会在用户首次进入新版页面时自动迁移到 MySQL，迁移成功后清理旧数据。浏览器只保留登录令牌，实际会话状态仍由服务端 Redis 管理。
+建站相关数据位于 `web_journey` 和 `journey_stage_progress` 表，游戏成绩位于 `user_game_progress` 表，社区内容位于 `community_post` 表。旧版浏览器中的建站数据会在用户首次进入新版页面时自动迁移到 MySQL，迁移成功后清理旧数据。浏览器只保留登录令牌，实际会话状态仍由服务端 Redis 管理。
 
 ## DataGrip 连接
 
@@ -62,6 +62,8 @@ MySQL 保存用户、课程、章节、练习、学习任务、课程进度、�
 - `POST /api/journey/stages/{stageId}/complete`：完成建站阶段并刷新缓存
 - `GET /api/games/progress`：读取累计游戏分数和已完成挑战
 - `POST /api/games/challenges/{challengeId}/complete`：完成挑战；重复提交不会重复计分
+- `GET /api/community/posts`：读取最新社区分享，可按建站历程或作品展示筛选
+- `POST /api/community/posts`：发布建站历程或带有链接的小网站作品
 - `GET /api/practice/questions`：读取练习题，可按 `subject` 筛选
 - `POST /api/practice/questions/{id}/submit`：提交答案并获取判分解析
 - `GET /api/practice/stats`：读取当前学生的累计答题统计

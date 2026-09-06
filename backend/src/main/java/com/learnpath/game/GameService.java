@@ -57,7 +57,7 @@ public class GameService {
     }
 
     private String cacheKey(Long userId) {
-        return "games:" + userId;
+        return "games:v2:" + userId;
     }
 
     private static Map<String, Integer> rewards() {
@@ -65,6 +65,7 @@ public class GameService {
         for (int index = 0; index < 3; index++) rewards.put("layout-" + index, 100);
         for (int index = 0; index < 3; index++) rewards.put("repair-" + index, 120);
         for (int index = 0; index < 3; index++) rewards.put("circuit-" + index, 150);
+        for (int index = 0; index < 12; index++) rewards.put("quiz-" + index, 100);
         return Map.copyOf(rewards);
     }
 }
