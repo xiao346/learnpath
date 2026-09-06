@@ -1,17 +1,15 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { completeJourneyStage, readCompletedStages } from '../services/journey'
+import { computed, onMounted, ref } from 'vue'
+import { completeJourneyStage, loadJourney, saveJourneyFirstPage, type FirstPageData } from '../services/journey'
 
-type FirstPage = { name: string; introduction: string; interest: string; theme: 'blue' | 'orange' | 'green' }
-let firstPage: FirstPage | null = null
-try { firstPage = JSON.parse(localStorage.getItem('learnpath_first_page') ?? 'null') as FirstPage | null }
-catch { localStorage.removeItem('learnpath_first_page') }
-const studentName = ref(firstPage?.name ?? '小途')
-const introduction = ref(firstPage?.introduction ?? '一名正在探索 Web 世界的大一学生。')
-const interest = ref(firstPage?.interest ?? '我喜欢摄影、音乐，也喜欢把新点子做出来。')
-const theme = ref<'blue' | 'orange' | 'green'>(firstPage?.theme ?? 'blue')
+const studentName = ref('小途')
+const introduction = ref('一名正在探索 Web 世界的大一学生。')
+const interest = ref('我喜欢摄影、音乐，也喜欢把新点子做出来。')
+const theme = ref<FirstPageData['theme']>('blue')
 const checks = ref([false, false, false])
-const saved = ref(readCompletedStages().includes('intro'))
+const saved = ref(false)
+const saving = ref(false)
+const error = ref('')
 const allChecked = computed(() => checks.value.every(Boolean))
 const themeLabel = computed(() => ({ blue: '夜空蓝', orange: '落日橙', green: '薄荷绿' })[theme.value])
 const code = computed(() => `<main>
@@ -25,12 +23,33 @@ const code = computed(() => `<main>
   </section>
 </main>`)
 
-function finishLesson() {
-  if (!allChecked.value) return
-  localStorage.setItem('learnpath_first_page', JSON.stringify({ name: studentName.value, introduction: introduction.value, interest: interest.value, theme: theme.value }))
-  completeJourneyStage('intro')
-  saved.value = true
+async function finishLesson() {
+  if (!allChecked.value || saving.value) return
+  saving.value = true
+  error.value = ''
+  try {
+    await saveJourneyFirstPage({ name: studentName.value, introduction: introduction.value, interest: interest.value, theme: theme.value })
+    await completeJourneyStage('intro')
+    saved.value = true
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : '首页内容保存失败'
+  } finally {
+    saving.value = false
+  }
 }
+
+onMounted(async () => {
+  try {
+    const journey = await loadJourney()
+    studentName.value = journey.firstPage.name
+    introduction.value = journey.firstPage.introduction
+    interest.value = journey.firstPage.interest
+    theme.value = journey.firstPage.theme
+    saved.value = journey.completedStages.includes('intro')
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : '首页内容加载失败'
+  }
+})
 </script>
 
 <template>
@@ -64,7 +83,8 @@ function finishLesson() {
           <label><input v-model="checks[0]" type="checkbox" /><i></i><span>页面上出现了我的名字</span></label>
           <label><input v-model="checks[1]" type="checkbox" /><i></i><span>介绍文字已经换成自己的内容</span></label>
           <label><input v-model="checks[2]" type="checkbox" /><i></i><span>我能说出 h1 和 p 分别表示什么</span></label>
-          <button type="button" :disabled="!allChecked" @click="finishLesson">{{ saved ? '第一站已保存 ✓' : '完成第一站' }}</button>
+          <button type="button" :disabled="!allChecked || saving" @click="finishLesson">{{ saving ? '正在保存到数据库…' : saved ? '第一站已保存 ✓' : '完成第一站' }}</button>
+          <small v-if="error" class="practice-error">{{ error }}</small>
           <p v-if="saved">干得漂亮。下一站，我们会用 CSS 给它认真换一身衣服。</p>
           <RouterLink v-if="saved" class="next-workshop-link" to="/courses/style-workshop">去第二站：学习 CSS →</RouterLink>
         </section>

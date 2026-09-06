@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { api, type CourseSummary } from '../services/api'
-import { readCompletedStages, type JourneyStageId } from '../services/journey'
+import { defaultJourney, loadJourney, saveJourneyConfiguration, type JourneyConfig, type JourneyStageId } from '../services/journey'
 
 type Choice = { id: string; name: string; note: string; badge?: string }
-type JourneyConfig = { project: string; frontend: string; backend: string; database: string }
 type RoadmapStage = { id: JourneyStageId; number: string; title: string; subtitle: string; output: string; time: string; skills: string[]; route: string | null; course: string | null }
 
-const storageKey = 'learnpath_web_journey'
 const projectChoices: Choice[] = [
   { id: 'portfolio', name: '个人作品集', note: '展示你的介绍、技能与第一批作品', badge: '推荐' },
   { id: 'blog', name: '兴趣博客', note: '分享游戏、电影、摄影或校园生活' },
@@ -29,14 +27,19 @@ const databaseChoices: Choice[] = [
 ]
 
 const courses = ref<CourseSummary[]>([])
-const completedStages = ref<JourneyStageId[]>(readCompletedStages())
-const saved = localStorage.getItem(storageKey)
-let initial: JourneyConfig | null = null
-try { initial = saved ? JSON.parse(saved) as JourneyConfig : null }
-catch { localStorage.removeItem(storageKey) }
-const configured = ref(Boolean(initial))
-const editing = ref(!initial)
-const config = ref<JourneyConfig>(initial ?? { project: 'portfolio', frontend: 'vue', backend: 'java', database: 'mysql' })
+const completedStages = ref<JourneyStageId[]>([])
+const configured = ref(false)
+const editing = ref(true)
+const loadingJourney = ref(true)
+const savingJourney = ref(false)
+const journeyError = ref('')
+const config = ref<JourneyConfig>({
+  project: defaultJourney.project,
+  frontend: defaultJourney.frontend,
+  backend: defaultJourney.backend,
+  database: defaultJourney.database,
+})
+const savedConfig = ref<JourneyConfig | null>(null)
 
 const choiceName = (choices: Choice[], id: string) => choices.find((item) => item.id === id)?.name ?? id
 const projectName = computed(() => choiceName(projectChoices, config.value.project))
@@ -136,22 +139,44 @@ function choose<K extends keyof JourneyConfig>(key: K, value: JourneyConfig[K]) 
   if (key === 'backend' && value !== 'later' && config.value.database === 'later') config.value.database = 'mysql'
 }
 
-function createJourney() {
-  localStorage.setItem(storageKey, JSON.stringify(config.value))
-  configured.value = true
-  editing.value = false
+async function createJourney() {
+  if (savingJourney.value) return
+  savingJourney.value = true
+  journeyError.value = ''
+  try {
+    const saved = await saveJourneyConfiguration(config.value)
+    savedConfig.value = { project: saved.project, frontend: saved.frontend, backend: saved.backend, database: saved.database }
+    completedStages.value = saved.completedStages
+    configured.value = true
+    editing.value = false
+  } catch (cause) {
+    journeyError.value = cause instanceof Error ? cause.message : '建站路线保存失败'
+  } finally {
+    savingJourney.value = false
+  }
 }
 
 function editJourney() { editing.value = true }
 function cancelEditing() {
-  const current = localStorage.getItem(storageKey)
-  if (current) config.value = JSON.parse(current) as JourneyConfig
+  if (savedConfig.value) config.value = { ...savedConfig.value }
   editing.value = false
 }
 
 onMounted(async () => {
   try { courses.value = await api<CourseSummary[]>('/api/courses') }
   catch { courses.value = [] }
+  try {
+    const journey = await loadJourney()
+    config.value = { project: journey.project, frontend: journey.frontend, backend: journey.backend, database: journey.database }
+    savedConfig.value = journey.configured ? { ...config.value } : null
+    completedStages.value = journey.completedStages
+    configured.value = journey.configured
+    editing.value = !journey.configured
+  } catch (cause) {
+    journeyError.value = cause instanceof Error ? cause.message : '建站路线加载失败'
+  } finally {
+    loadingJourney.value = false
+  }
 })
 </script>
 
@@ -162,7 +187,9 @@ onMounted(async () => {
       <button v-if="configured && !editing" class="ghost-button" type="button" @click="editJourney">调整技术路线</button>
     </header>
 
-    <section v-if="editing" class="journey-builder glass-card">
+    <div v-if="loadingJourney" class="state-card glass-card"><span class="loader"></span><p>正在读取你的建站路线…</p></div>
+    <div v-else-if="journeyError && !configured" class="state-card glass-card"><strong>建站路线暂时无法读取</strong><p>{{ journeyError }}</p><button type="button" @click="$router.go(0)">重新加载</button></div>
+    <section v-else-if="editing" class="journey-builder glass-card">
       <div class="builder-intro"><span>路线定制</span><h3>{{ configured ? '重新选择你的建站工具' : '你想做一个什么样的网站？' }}</h3><p>不了解这些名字也没关系，我们已经标出了更适合第一次建站的选择。</p></div>
 
       <section class="technology-primer">
@@ -179,7 +206,7 @@ onMounted(async () => {
 
       <section class="selected-tech-guide"><div class="choice-title"><b>4</b><div><h4>你选的工具分别做什么？</h4><p>改变上面的选择，这里的解释也会跟着变化。</p></div></div><div><article v-for="item in selectedTechnologyGuide" :key="item.name"><span>{{ item.role }}</span><h4>{{ item.name }}</h4><p>{{ item.detail }}</p></article></div></section>
 
-      <footer class="builder-footer"><div><small>你的路线</small><strong>{{ projectName }}</strong><span>{{ stackSummary }}</span></div><div><button v-if="configured" class="ghost-button" type="button" @click="cancelEditing">取消</button><button class="primary-journey-button" type="button" @click="createJourney">生成我的建站之旅 →</button></div></footer>
+      <p v-if="journeyError" class="practice-error">{{ journeyError }}</p><footer class="builder-footer"><div><small>你的路线</small><strong>{{ projectName }}</strong><span>{{ stackSummary }}</span></div><div><button v-if="configured" class="ghost-button" type="button" @click="cancelEditing">取消</button><button class="primary-journey-button" type="button" :disabled="savingJourney" @click="createJourney">{{ savingJourney ? '正在保存到数据库…' : '生成我的建站之旅 →' }}</button></div></footer>
     </section>
 
     <template v-else>

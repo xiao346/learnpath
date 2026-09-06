@@ -1,32 +1,24 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { completeJourneyStage, readCompletedStages } from '../services/journey'
+import { computed, onMounted, ref } from 'vue'
+import { completeJourneyStage, loadJourney, saveJourneyStyle, type FirstPageData, type StyleData } from '../services/journey'
 
 const props = defineProps<{ stage: 'style' | 'interaction' }>()
-type FirstPage = { name: string; introduction: string; interest: string; theme: 'blue' | 'orange' | 'green' }
-type StyleSettings = { accent: string; radius: number; spacing: number; shadow: boolean }
-
-const firstPageFallback: FirstPage = {
+const firstPageFallback: FirstPageData = {
   name: '小途',
   introduction: '一名正在探索 Web 世界的大一学生。',
   interest: '我喜欢摄影、音乐，也喜欢把新点子做出来。',
   theme: 'blue',
 }
-let firstPage = firstPageFallback
-let storedStyle: StyleSettings | null = null
-try { firstPage = JSON.parse(localStorage.getItem('learnpath_first_page') ?? 'null') as FirstPage ?? firstPageFallback }
-catch { firstPage = firstPageFallback }
-try { storedStyle = JSON.parse(localStorage.getItem('learnpath_page_style') ?? 'null') as StyleSettings | null }
-catch { localStorage.removeItem('learnpath_page_style') }
-
-const savedStages = readCompletedStages()
-const styleCompleted = ref(savedStages.includes('style'))
-const interactionCompleted = ref(savedStages.includes('interaction'))
-const accent = ref(storedStyle?.accent ?? '#5b72f2')
-const radius = ref(storedStyle?.radius ?? 18)
-const spacing = ref(storedStyle?.spacing ?? 24)
-const shadow = ref(storedStyle?.shadow ?? true)
-const styleTouched = ref(Boolean(storedStyle))
+const firstPage = ref<FirstPageData>(firstPageFallback)
+const styleCompleted = ref(false)
+const interactionCompleted = ref(false)
+const accent = ref('#5b72f2')
+const radius = ref(18)
+const spacing = ref(24)
+const shadow = ref(true)
+const styleTouched = ref(false)
+const saving = ref(false)
+const error = ref('')
 const styleKnowledge = ref(false)
 const styleReady = computed(() => styleTouched.value && styleKnowledge.value)
 const palette = [
@@ -83,18 +75,51 @@ function toggleStory() {
   markInteraction('story')
 }
 
-function finishStyle() {
-  if (!styleReady.value) return
-  localStorage.setItem('learnpath_page_style', JSON.stringify({ accent: accent.value, radius: radius.value, spacing: spacing.value, shadow: shadow.value }))
-  completeJourneyStage('style')
-  styleCompleted.value = true
+async function finishStyle() {
+  if (!styleReady.value || saving.value) return
+  saving.value = true
+  error.value = ''
+  try {
+    const style: StyleData = { accent: accent.value, radius: radius.value, spacing: spacing.value, shadow: shadow.value }
+    await saveJourneyStyle(style)
+    await completeJourneyStage('style')
+    styleCompleted.value = true
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : '页面样式保存失败'
+  } finally {
+    saving.value = false
+  }
 }
 
-function finishInteraction() {
-  if (!interactionReady.value) return
-  completeJourneyStage('interaction')
-  interactionCompleted.value = true
+async function finishInteraction() {
+  if (!interactionReady.value || saving.value) return
+  saving.value = true
+  error.value = ''
+  try {
+    await completeJourneyStage('interaction')
+    interactionCompleted.value = true
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : '互动阶段保存失败'
+  } finally {
+    saving.value = false
+  }
 }
+
+onMounted(async () => {
+  try {
+    const journey = await loadJourney()
+    firstPage.value = journey.firstPage
+    accent.value = journey.style.accent
+    radius.value = journey.style.radius
+    spacing.value = journey.style.spacing
+    shadow.value = journey.style.shadow
+    styleTouched.value = journey.completedStages.includes('style')
+    styleCompleted.value = journey.completedStages.includes('style')
+    interactionCompleted.value = journey.completedStages.includes('interaction')
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : '建站作品加载失败'
+  }
+})
 </script>
 
 <template>
@@ -133,7 +158,7 @@ function finishInteraction() {
             <span>完成检查</span><h3>你已经在指挥页面变装了吗？</h3>
             <div class="workshop-status" :class="{ done: styleTouched }"><i>{{ styleTouched ? '✓' : '1' }}</i><span>调整一次颜色、圆角或留白</span></div>
             <label><input v-model="styleKnowledge" type="checkbox" /><i></i><span>我知道属性是“改什么”，值是“改成什么”</span></label>
-            <button type="button" :disabled="!styleReady" @click="finishStyle">{{ styleCompleted ? '第二站已保存 ✓' : '完成第二站' }}</button>
+            <button type="button" :disabled="!styleReady || saving" @click="finishStyle">{{ saving ? '正在保存到数据库…' : styleCompleted ? '第二站已保存 ✓' : '完成第二站' }}</button><small v-if="error" class="practice-error">{{ error }}</small>
             <RouterLink v-if="styleCompleted" class="next-workshop-link" to="/courses/interaction-workshop">去第三站：让按钮工作 →</RouterLink>
           </section>
         </aside>
@@ -172,7 +197,7 @@ function finishInteraction() {
             <div class="interaction-progress"><i :style="{ width: `${interactions.length / 3 * 100}%` }"></i></div>
             <p class="progress-copy">{{ interactions.length }} / 3 个交互已触发</p>
             <label><input v-model="interactionKnowledge" type="checkbox" /><i></i><span>我知道事件是发生的动作，状态是页面记住的结果</span></label>
-            <button type="button" :disabled="!interactionReady" @click="finishInteraction">{{ interactionCompleted ? '第三站已保存 ✓' : '完成第三站' }}</button>
+            <button type="button" :disabled="!interactionReady || saving" @click="finishInteraction">{{ saving ? '正在保存到数据库…' : interactionCompleted ? '第三站已保存 ✓' : '完成第三站' }}</button><small v-if="error" class="practice-error">{{ error }}</small>
             <RouterLink v-if="interactionCompleted" class="next-workshop-link" to="/courses">回到路线，看看下一站 →</RouterLink>
           </section>
         </aside>

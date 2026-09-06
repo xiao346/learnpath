@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { completeGameChallenge, loadGameProgress } from '../services/games'
 
 type GameId = 'layout' | 'repair' | 'circuit'
 type Alignment = 'flex-start' | 'center' | 'space-between' | 'flex-end'
@@ -7,11 +8,15 @@ type Alignment = 'flex-start' | 'center' | 'space-between' | 'flex-end'
 const activeGame = ref<GameId>('layout')
 const score = ref(0)
 const awardedChallenges = new Set<string>()
+const savingChallenge = ref(false)
+const gameError = ref('')
 
-function awardOnce(challenge: string, points: number) {
+async function awardOnce(challenge: string) {
   if (awardedChallenges.has(challenge)) return
-  awardedChallenges.add(challenge)
-  score.value += points
+  const progress = await completeGameChallenge(challenge)
+  awardedChallenges.clear()
+  progress.completedChallenges.forEach((item) => awardedChallenges.add(item))
+  score.value = progress.totalScore
 }
 
 const layoutTargets: { value: Alignment; label: string; hint: string }[] = [
@@ -110,11 +115,19 @@ function selectLayout(value: Alignment) {
   layoutSolved.value = false
 }
 
-function checkLayout() {
+async function checkLayout() {
   if (layoutAnswer.value === layoutTarget.value.value) {
-    layoutFeedback.value = '摆对了！justify-content 控制主轴上的排列方式。'
-    awardOnce(`layout-${layoutLevel.value}`, 100)
-    layoutSolved.value = true
+    savingChallenge.value = true
+    gameError.value = ''
+    try {
+      await awardOnce(`layout-${layoutLevel.value}`)
+      layoutFeedback.value = '摆对了！justify-content 控制主轴上的排列方式，成绩已保存到数据库。'
+      layoutSolved.value = true
+    } catch (cause) {
+      gameError.value = cause instanceof Error ? cause.message : '游戏成绩保存失败'
+    } finally {
+      savingChallenge.value = false
+    }
   } else {
     layoutFeedback.value = layoutAnswer.value === 'flex-start' ? '现在它们还挤在起点，再观察目标位置。' : '已经移动了，但和目标还有一点差别。'
   }
@@ -127,12 +140,20 @@ function nextLayout() {
   layoutSolved.value = false
 }
 
-function checkRepair() {
+async function checkRepair() {
   if (!repairChoice.value) return
   if (repairChoice.value === repairTarget.value.correct) {
-    repairFeedback.value = repairTarget.value.success
-    awardOnce(`repair-${repairLevel.value}`, 120)
-    repairSolved.value = true
+    savingChallenge.value = true
+    gameError.value = ''
+    try {
+      await awardOnce(`repair-${repairLevel.value}`)
+      repairFeedback.value = `${repairTarget.value.success} 成绩已保存到数据库。`
+      repairSolved.value = true
+    } catch (cause) {
+      gameError.value = cause instanceof Error ? cause.message : '游戏成绩保存失败'
+    } finally {
+      savingChallenge.value = false
+    }
   } else {
     repairFeedback.value = '这条代码没有解决题目里的布局原因，再看一次线索。'
   }
@@ -145,12 +166,20 @@ function nextRepair() {
   repairSolved.value = false
 }
 
-function checkCircuit() {
+async function checkCircuit() {
   if (!circuitChoice.value) return
   if (circuitChoice.value === circuitTarget.value.correct) {
-    circuitFeedback.value = circuitTarget.value.success
-    awardOnce(`circuit-${circuitLevel.value}`, 150)
-    circuitSolved.value = true
+    savingChallenge.value = true
+    gameError.value = ''
+    try {
+      await awardOnce(`circuit-${circuitLevel.value}`)
+      circuitFeedback.value = `${circuitTarget.value.success} 成绩已保存到数据库。`
+      circuitSolved.value = true
+    } catch (cause) {
+      gameError.value = cause instanceof Error ? cause.message : '游戏成绩保存失败'
+    } finally {
+      savingChallenge.value = false
+    }
   } else {
     circuitFeedback.value = '线路还没有接通。注意代码要使用浏览器真正认识的方法。'
   }
@@ -162,11 +191,21 @@ function nextCircuit() {
   circuitFeedback.value = ''
   circuitSolved.value = false
 }
+
+onMounted(async () => {
+  try {
+    const progress = await loadGameProgress()
+    score.value = progress.totalScore
+    progress.completedChallenges.forEach((item) => awardedChallenges.add(item))
+  } catch (cause) {
+    gameError.value = cause instanceof Error ? cause.message : '游戏进度加载失败'
+  }
+})
 </script>
 
 <template>
   <section class="games-page">
-    <header class="journey-heading"><div><span class="eyebrow"><i></i> PLAY AND LEARN</span><h2>趣味闯关</h2><p>用几分钟的小挑战，把抽象知识变成手上的感觉。</p></div><div class="game-score"><small>本次得分</small><strong>{{ score }}</strong><span>XP</span></div></header>
+    <header class="journey-heading"><div><span class="eyebrow"><i></i> PLAY AND LEARN</span><h2>趣味闯关</h2><p>用几分钟的小挑战，把抽象知识变成手上的感觉。</p><small v-if="gameError" class="practice-error">{{ gameError }}</small></div><div class="game-score"><small>累计得分</small><strong>{{ score }}</strong><span>XP</span></div></header>
 
     <div class="game-layout">
       <section v-if="activeGame === 'layout'" class="active-game glass-card">
@@ -174,7 +213,7 @@ function nextCircuit() {
         <div class="mission-card"><span>本关任务</span><strong>{{ layoutTarget.label }}</strong><p>{{ layoutTarget.hint }}</p></div>
         <div class="layout-arenas"><div><span>目标队形</span><div class="layout-arena target" :style="{ justifyContent: layoutTarget.value }"><i>A</i><i>B</i><i>C</i></div></div><div><span>你的队形</span><div class="layout-arena player" :class="{ correct: layoutSolved }" :style="{ justifyContent: layoutAnswer }"><i>A</i><i>B</i><i>C</i></div></div></div>
         <div class="code-control"><code>justify-content: <b>{{ layoutAnswer }}</b>;</code><div><button v-for="item in layoutOptions" :key="item.value" type="button" :class="{ selected: layoutAnswer === item.value }" @click="selectLayout(item.value)">{{ item.label }}</button></div></div>
-        <div class="game-actions"><p :class="{ success: layoutSolved }">{{ layoutFeedback || '选一个属性值，看看方块会怎么移动。' }}</p><button v-if="!layoutSolved" type="button" @click="checkLayout">检查队形</button><button v-else type="button" @click="nextLayout">下一关 →</button></div>
+        <div class="game-actions"><p :class="{ success: layoutSolved }">{{ layoutFeedback || '选一个属性值，看看方块会怎么移动。' }}</p><button v-if="!layoutSolved" type="button" :disabled="savingChallenge" @click="checkLayout">{{ savingChallenge ? '正在保存…' : '检查队形' }}</button><button v-else type="button" @click="nextLayout">下一关 →</button></div>
       </section>
 
       <section v-else-if="activeGame === 'repair'" class="active-game glass-card">
@@ -184,7 +223,7 @@ function nextCircuit() {
           <div class="repair-brief"><span>故障报告</span><h4>{{ repairTarget.title }}</h4><p>{{ repairTarget.clue }}</p><code>{{ repairTarget.broken }}</code></div>
         </div>
         <div class="repair-options"><span>选择一条修复代码</span><button v-for="option in repairTarget.options" :key="option" type="button" :class="{ selected: repairChoice === option, correct: repairSolved && option === repairTarget.correct }" @click="repairChoice = option; repairFeedback = ''; repairSolved = false"><code>{{ option }}</code></button></div>
-        <div class="game-actions"><p :class="{ success: repairSolved }">{{ repairFeedback || '根据故障原因选择，不要只凭代码看起来熟悉。' }}</p><button v-if="!repairSolved" type="button" :disabled="!repairChoice" @click="checkRepair">运行修复</button><button v-else type="button" @click="nextRepair">下一张工单 →</button></div>
+        <div class="game-actions"><p :class="{ success: repairSolved }">{{ repairFeedback || '根据故障原因选择，不要只凭代码看起来熟悉。' }}</p><button v-if="!repairSolved" type="button" :disabled="!repairChoice || savingChallenge" @click="checkRepair">{{ savingChallenge ? '正在保存…' : '运行修复' }}</button><button v-else type="button" @click="nextRepair">下一张工单 →</button></div>
       </section>
 
       <section v-else class="active-game glass-card">
@@ -193,7 +232,7 @@ function nextCircuit() {
         <div class="circuit-board" :class="{ online: circuitSolved }"><div class="circuit-node"><span>用户</span><strong>CLICK</strong></div><i>→</i><div class="circuit-node missing"><span>缺少代码</span><strong>{{ circuitSolved ? 'CONNECTED' : '???' }}</strong></div><i>→</i><div class="circuit-node"><span>页面</span><strong>{{ circuitSolved ? 'UPDATED' : 'WAITING' }}</strong></div></div>
         <pre class="circuit-code"><code><span>{{ circuitTarget.before }}</span><b>{{ circuitChoice || '// 把正确代码接在这里' }}</b><span v-if="circuitTarget.after">  {{ circuitTarget.after }}</span><span v-if="circuitTarget.closing">{{ circuitTarget.closing }}</span></code></pre>
         <div class="repair-options circuit-options"><span>选择缺失线路</span><button v-for="option in circuitTarget.options" :key="option" type="button" :class="{ selected: circuitChoice === option, correct: circuitSolved && option === circuitTarget.correct }" @click="circuitChoice = option; circuitFeedback = ''; circuitSolved = false"><code>{{ option }}</code></button></div>
-        <div class="game-actions"><p :class="{ success: circuitSolved }">{{ circuitFeedback || '想一想：浏览器用哪个方法监听事件或改变状态？' }}</p><button v-if="!circuitSolved" type="button" :disabled="!circuitChoice" @click="checkCircuit">接通机关</button><button v-else type="button" @click="nextCircuit">下一间机关屋 →</button></div>
+        <div class="game-actions"><p :class="{ success: circuitSolved }">{{ circuitFeedback || '想一想：浏览器用哪个方法监听事件或改变状态？' }}</p><button v-if="!circuitSolved" type="button" :disabled="!circuitChoice || savingChallenge" @click="checkCircuit">{{ savingChallenge ? '正在保存…' : '接通机关' }}</button><button v-else type="button" @click="nextCircuit">下一间机关屋 →</button></div>
       </section>
 
       <aside class="game-library">
