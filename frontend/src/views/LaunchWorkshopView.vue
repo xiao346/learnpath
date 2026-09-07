@@ -22,10 +22,12 @@ const technologyNames: Record<string, string> = {
 const journey = ref<JourneyData>(defaultJourney)
 const projectName = computed(() => projectNames[journey.value.project] ?? '我的第一个网站')
 const hasBackend = computed(() => journey.value.backend !== 'later')
+const hasDatabase = computed(() => hasBackend.value && journey.value.database !== 'later')
+const hasDeployment = computed(() => Boolean(journey.value.deploymentUrl))
 const stack = computed(() => [
   technologyNames[journey.value.frontend] ?? journey.value.frontend,
   hasBackend.value ? technologyNames[journey.value.backend] ?? journey.value.backend : null,
-  hasBackend.value ? technologyNames[journey.value.database] ?? journey.value.database : null,
+  hasDatabase.value ? technologyNames[journey.value.database] ?? journey.value.database : null,
 ].filter(Boolean).join(' · '))
 
 const checks = computed(() => [
@@ -36,16 +38,17 @@ const checks = computed(() => [
   hasBackend.value
     ? { id: 'api', area: '接口', title: '后端健康检查通过', detail: `确认 ${technologyNames[journey.value.backend]} 服务能接收请求并返回成功响应。`, command: 'GET /api/public/status' }
     : { id: 'links', area: '链接', title: '站内链接都能打开', detail: '逐个检查导航、作品卡片和联系方式，不留下空链接。', command: 'check all links' },
-  hasBackend.value
+  hasDatabase.value
     ? { id: 'data', area: '数据', title: '刷新后数据仍然存在', detail: `新增一条内容后刷新页面，确认数据已保存到 ${technologyNames[journey.value.database]}。`, command: 'create → refresh → read' }
     : { id: 'fallback', area: '容错', title: '资源加载失败也有提示', detail: '图片、字体或脚本失败时，页面仍保留可读内容。', command: 'offline check' },
-  { id: 'publish', area: '发布', title: '公开地址可以重新访问', detail: '使用无痕窗口打开网址，再检查首页、移动端和控制台。', command: 'open public URL' },
+  { id: 'publish', area: '发布', title: '公开地址可以重新访问', detail: `使用无痕窗口打开${journey.value.deploymentUrl ? ` ${journey.value.deploymentUrl}` : '发布站保存的网址'}，再检查首页、移动端和控制台。`, command: journey.value.deploymentUrl ? `open ${journey.value.deploymentUrl}` : 'open public URL' },
 ])
 
 const results = ref<Record<string, CheckResult>>({})
 const runningId = ref('')
 const promiseChecked = ref(false)
 const completed = ref(false)
+const loaded = ref(false)
 const saving = ref(false)
 const error = ref('')
 const allPassed = computed(() => checks.value.every((item) => results.value[item.id]?.ok))
@@ -79,7 +82,7 @@ async function runRemainingChecks() {
 }
 
 async function finishJourney() {
-  if (!allPassed.value || !promiseChecked.value || saving.value) return
+  if (!allPassed.value || !promiseChecked.value || !hasDeployment.value || saving.value) return
   saving.value = true
   error.value = ''
   try {
@@ -117,6 +120,8 @@ onMounted(async () => {
     completed.value = journey.value.completedStages.includes('launch')
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : '建站路线加载失败'
+  } finally {
+    loaded.value = true
   }
 })
 </script>
@@ -129,6 +134,10 @@ onMounted(async () => {
       <div><span class="eyebrow"><i></i> FINAL CHECK</span><h2>让第一个网站正式毕业</h2><p>最后一站不再增加新功能。我们从访客视角检查构建、内容、手机体验、接口和公开地址，确保作品可以放心展示。</p><div class="launch-stack"><span>{{ projectName }}</span><b>{{ stack }}</b></div></div>
       <div class="launch-score" :class="{ ready: allPassed || completed }"><small>项目健康度</small><strong>{{ healthPercent }}</strong><span>/ 100</span><i></i></div>
     </header>
+
+    <section v-if="loaded && !hasDeployment && !completed" class="launch-url-warning glass-card"><div><span>还缺一项真实成果</span><h3>先保存可以访问的网站地址</h3><p>最终检查会使用发布站保存的网址。即使你跳过了发布知识，也需要留下自己的真实网站地址。</p></div><RouterLink to="/courses/publish-workshop">返回发布站填写网址 →</RouterLink></section>
+
+    <section v-if="!completed && !hasDeployment" class="launch-url-warning glass-card"><div><span>还缺一个真实成果</span><h3>先发布网站并保存公开地址</h3><p>即使发布知识已经学过，最终检查也需要一个实际网址。进入发布站填写地址后再回来。</p></div><RouterLink to="/courses/publish-workshop">去发布站保存网址 →</RouterLink></section>
 
     <div v-if="!completed" class="launch-grid">
       <section class="launch-checks glass-card">
@@ -145,12 +154,12 @@ onMounted(async () => {
 
       <aside class="launch-side">
         <section class="launch-rule glass-card"><span>作品完成标准</span><h3>小而完整，就值得展示</h3><p>第一个网站不需要塞满高级技术。访客能打开、看懂、操作，你能说明自己做了什么，这就是一份真正的项目。</p><ul><li>至少有一个你亲手完成的页面</li><li>至少有一次可见的交互</li><li>同时适配电脑和手机</li><li>有公开地址和运行说明</li></ul></section>
-        <section class="lesson-checklist glass-card"><span>毕业确认</span><h3>{{ allPassed ? '所有检查都通过了' : '完成左侧项目体检' }}</h3><label><input v-model="promiseChecked" type="checkbox" :disabled="!allPassed" /><i></i><span>我可以向别人介绍这个网站的主题、技术路线和一个自己解决的问题</span></label><button type="button" :disabled="!allPassed || !promiseChecked || saving" @click="finishJourney">{{ saving ? '正在保存到数据库…' : '完成我的建站之旅' }}</button><small v-if="error" class="practice-error">{{ error }}</small></section>
+        <section class="lesson-checklist glass-card"><span>毕业确认</span><h3>{{ !hasDeployment ? '先保存真实网站地址' : allPassed ? '所有检查都通过了' : '完成左侧项目体检' }}</h3><label><input v-model="promiseChecked" type="checkbox" :disabled="!allPassed || !hasDeployment" /><i></i><span>我可以向别人介绍这个网站的主题、技术路线和一个自己解决的问题</span></label><button type="button" :disabled="!allPassed || !promiseChecked || !hasDeployment || saving" @click="finishJourney">{{ saving ? '正在保存到数据库…' : '完成我的建站之旅' }}</button><small v-if="error" class="practice-error">{{ error }}</small></section>
       </aside>
     </div>
 
     <section v-else class="project-graduation glass-card">
-      <div class="graduation-mark">✓</div><span>FIRST WEBSITE COMPLETED</span><h2>{{ projectName }} 已完成</h2><p>你已经走完从第一行 HTML 到项目上线检查的完整路线。下一次做项目时，可以继续沿用这份检查方法。</p><div><span>技术路线</span><strong>{{ stack }}</strong></div><div class="graduation-actions"><button type="button" @click="downloadReport">下载上线检查报告</button><RouterLink to="/">返回学习工作台 →</RouterLink></div>
+      <div class="graduation-mark">✓</div><span>FIRST WEBSITE COMPLETED</span><h2>{{ projectName }} 已完成</h2><p>你已经走完从第一行 HTML 到项目上线检查的完整路线。下一次做项目时，可以继续沿用这份检查方法。</p><div><span>技术路线</span><strong>{{ stack }}</strong></div><div class="graduation-actions"><button type="button" @click="downloadReport">下载上线检查报告</button><RouterLink :to="{ path: '/community', query: { compose: 'website', title: `${projectName}完成毕业检查`, content: '我完成了第一次完整的建站路线，也通过了上线前的项目检查。这是我的最终版本，欢迎提出建议。', url: journey.deploymentUrl ?? '' } }">把毕业作品分享到社区</RouterLink><RouterLink to="/">返回学习工作台 →</RouterLink></div>
     </section>
   </section>
 </template>

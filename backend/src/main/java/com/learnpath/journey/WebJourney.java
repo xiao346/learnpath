@@ -57,6 +57,9 @@ public class WebJourney {
     @Column(nullable = false)
     private boolean styleShadow = true;
 
+    @Column(length = 500)
+    private String deploymentUrl;
+
     private Instant graduatedAt;
 
     @Column(nullable = false, updatable = false)
@@ -96,6 +99,11 @@ public class WebJourney {
         touch();
     }
 
+    public void updateDeploymentUrl(String deploymentUrl) {
+        this.deploymentUrl = deploymentUrl;
+        touch();
+    }
+
     public void graduate() {
         if (graduatedAt == null) graduatedAt = Instant.now();
         touch();
@@ -118,6 +126,7 @@ public class WebJourney {
     public int getStyleRadius() { return styleRadius; }
     public int getStyleSpacing() { return styleSpacing; }
     public boolean isStyleShadow() { return styleShadow; }
+    public String getDeploymentUrl() { return deploymentUrl; }
     public Instant getGraduatedAt() { return graduatedAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

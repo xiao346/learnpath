@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   loadCommunityPosts,
   publishCommunityComment,
@@ -15,6 +16,7 @@ const filters: { id: CommunityFilter; label: string }[] = [
   { id: 'JOURNEY', label: '建站历程' },
   { id: 'WEBSITE', label: '小网站' },
 ]
+const route = useRoute()
 
 const activeFilter = ref<CommunityFilter>('ALL')
 const posts = ref<CommunityPost[]>([])
@@ -216,7 +218,16 @@ const roleLabel = (role: CommunityPost['authorRole']) => ({
   ADMIN: '社区管理员',
 }[role])
 
-onMounted(loadPosts)
+onMounted(async () => {
+  await loadPosts()
+  if (route.query.compose !== 'journey' && route.query.compose !== 'website') return
+  postType.value = route.query.compose === 'website' ? 'WEBSITE' : 'JOURNEY'
+  title.value = typeof route.query.title === 'string' ? route.query.title : ''
+  content.value = typeof route.query.content === 'string' ? route.query.content : ''
+  websiteUrl.value = typeof route.query.url === 'string' ? route.query.url : ''
+  await nextTick()
+  openComposer()
+})
 onBeforeUnmount(clearSelectedImages)
 </script>
 

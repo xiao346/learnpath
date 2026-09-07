@@ -10,6 +10,7 @@ const firstPageFallback: FirstPageData = {
   theme: 'blue',
 }
 const firstPage = ref<FirstPageData>(firstPageFallback)
+const project = ref('portfolio')
 const styleCompleted = ref(false)
 const interactionCompleted = ref(false)
 const accent = ref('#5b72f2')
@@ -50,6 +51,12 @@ const interactionCode = `const button = document.querySelector('#theme-button')
 button.addEventListener('click', () => {
   document.body.classList.toggle('dark')
 })`
+const projectBriefs: Record<string, { section: string; styleTask: string; interactions: string[]; interactionResult: string }> = {
+  portfolio: { section: '作品卡片', styleTask: '让作品标题、介绍和链接在一张卡片里层级清楚', interactions: ['按类别筛选作品', '收藏喜欢的作品', '展开作品详情'], interactionResult: '访客能筛选并查看你的作品' },
+  blog: { section: '文章卡片', styleTask: '让文章标题、摘要和发布时间读起来更舒服', interactions: ['按主题筛选文章', '收藏想读的文章', '展开文章摘要'], interactionResult: '读者能找到并打开想看的文章' },
+  campus: { section: '活动卡片', styleTask: '让活动名称、时间和地点一眼就能看清', interactions: ['按日期筛选活动', '收藏想参加的活动', '展开活动详情'], interactionResult: '同学能快速找到可以参加的活动' },
+}
+const projectBrief = computed(() => projectBriefs[project.value] ?? projectBriefs.portfolio)
 
 function pickAccent(value: string) {
   accent.value = value
@@ -108,6 +115,7 @@ async function finishInteraction() {
 onMounted(async () => {
   try {
     const journey = await loadJourney()
+    project.value = journey.project
     firstPage.value = journey.firstPage
     accent.value = journey.style.accent
     radius.value = journey.style.radius
@@ -129,12 +137,12 @@ onMounted(async () => {
     <template v-if="stage === 'style'">
       <header class="first-lesson-header glass-card">
         <div><span class="lesson-kicker">第 02 站 · CSS 造型室</span><h2>给网站换件衣服</h2><p>HTML 已经准备好内容，现在轮到 CSS 决定颜色、空间和形状。拖一拖、点一点，观察每条样式怎样改变页面。</p></div>
-        <div class="lesson-win"><small>这一站的成果</small><strong>一套自己的视觉主题</strong><span>选择器 · 属性 · 盒模型</span></div>
+        <div class="lesson-win"><small>这一站的成果</small><strong>一套自己的{{ projectBrief.section }}样式</strong><span>选择器 · 属性 · 盒模型</span></div>
       </header>
 
       <div class="first-lesson-grid">
         <section class="lesson-workbench glass-card">
-          <div class="workbench-heading"><span>CSS 调色台</span><h3>先从最容易看见的变化开始</h3><p>CSS 的基本写法是“选中谁，然后修改它的某个属性”。这里选中的是介绍卡片。</p></div>
+          <div class="workbench-heading"><span>CSS 调色台</span><h3>先从最容易看见的变化开始</h3><p>这一站要{{ projectBrief.styleTask }}。CSS 的基本写法是“选中谁，然后修改它的某个属性”。</p></div>
 
           <div class="style-control">
             <div><strong>主色</strong><small>决定按钮和卡片的重点颜色</small></div>
@@ -156,7 +164,7 @@ onMounted(async () => {
 
           <section class="lesson-checklist glass-card">
             <span>完成检查</span><h3>你已经在指挥页面变装了吗？</h3>
-            <div class="workshop-status" :class="{ done: styleTouched }"><i>{{ styleTouched ? '✓' : '1' }}</i><span>调整一次颜色、圆角或留白</span></div>
+            <div class="workshop-status" :class="{ done: styleTouched }"><i>{{ styleTouched ? '✓' : '1' }}</i><span>调整一次{{ projectBrief.section }}的颜色、圆角或留白</span></div>
             <label><input v-model="styleKnowledge" type="checkbox" /><i></i><span>我知道属性是“改什么”，值是“改成什么”</span></label>
             <button type="button" :disabled="!styleReady || saving" @click="finishStyle">{{ saving ? '正在保存到数据库…' : styleCompleted ? '第二站已保存 ✓' : '完成第二站' }}</button><small v-if="error" class="practice-error">{{ error }}</small>
             <RouterLink v-if="styleCompleted" class="next-workshop-link" to="/courses/interaction-workshop">去第三站：让按钮工作 →</RouterLink>
@@ -168,7 +176,7 @@ onMounted(async () => {
     <template v-else>
       <header class="first-lesson-header glass-card">
         <div><span class="lesson-kicker">第 03 站 · JavaScript 机关室</span><h2>让按钮真的有反应</h2><p>一个按钮被点击时，JavaScript 会收到消息、改变状态，再让页面呈现新的结果。先亲手触发三个机关。</p></div>
-        <div class="lesson-win"><small>这一站的成果</small><strong>会回应用户的页面</strong><span>事件 · 状态 · DOM</span></div>
+        <div class="lesson-win"><small>这一站的成果</small><strong>{{ projectBrief.interactionResult }}</strong><span>事件 · 状态 · DOM</span></div>
       </header>
 
       <div class="first-lesson-grid">
@@ -176,9 +184,9 @@ onMounted(async () => {
           <div class="workbench-heading"><span>三个小机关</span><h3>点击、变化、记住结果</h3><p>每次点击都是一个“事件”。页面记住的深色模式、点赞状态和展开状态，都叫“状态”。</p></div>
 
           <div class="interaction-missions">
-            <button type="button" :class="{ done: interactions.includes('theme') }" @click="toggleTheme"><i>{{ interactions.includes('theme') ? '✓' : '1' }}</i><span><strong>切换白天与夜晚</strong><small>观察整张页面的颜色怎样一起变化</small></span><em>点击试试</em></button>
-            <button type="button" :class="{ done: interactions.includes('like') }" @click="toggleLike"><i>{{ interactions.includes('like') ? '✓' : '2' }}</i><span><strong>给兴趣卡片点赞</strong><small>同一个按钮可以在两种状态间切换</small></span><em>{{ liked ? '已点赞' : '点击试试' }}</em></button>
-            <button type="button" :class="{ done: interactions.includes('story') }" @click="toggleStory"><i>{{ interactions.includes('story') ? '✓' : '3' }}</i><span><strong>展开隐藏内容</strong><small>让页面根据状态决定显示什么</small></span><em>{{ storyOpen ? '已展开' : '点击试试' }}</em></button>
+            <button type="button" :class="{ done: interactions.includes('theme') }" @click="toggleTheme"><i>{{ interactions.includes('theme') ? '✓' : '1' }}</i><span><strong>{{ projectBrief.interactions[0] }}</strong><small>观察一次点击怎样改变页面显示的内容</small></span><em>点击试试</em></button>
+            <button type="button" :class="{ done: interactions.includes('like') }" @click="toggleLike"><i>{{ interactions.includes('like') ? '✓' : '2' }}</i><span><strong>{{ projectBrief.interactions[1] }}</strong><small>同一个按钮可以在两种状态间切换</small></span><em>{{ liked ? '已收藏' : '点击试试' }}</em></button>
+            <button type="button" :class="{ done: interactions.includes('story') }" @click="toggleStory"><i>{{ interactions.includes('story') ? '✓' : '3' }}</i><span><strong>{{ projectBrief.interactions[2] }}</strong><small>让页面根据状态决定显示什么</small></span><em>{{ storyOpen ? '已展开' : '点击试试' }}</em></button>
           </div>
 
           <div class="event-flow"><span>用户点击</span><i>→</i><span>触发 click 事件</span><i>→</i><span>修改状态</span><i>→</i><span>页面更新</span></div>

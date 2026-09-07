@@ -1,10 +1,32 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { api, type CourseSummary } from '../services/api'
 import { defaultJourney, loadJourney, saveJourneyConfiguration, skipJourneyStage, type JourneyConfig, type JourneyStageId } from '../services/journey'
 
 type Choice = { id: string; name: string; note: string; badge?: string }
-type RoadmapStage = { id: JourneyStageId; number: string; title: string; subtitle: string; output: string; time: string; skills: string[]; route: string | null; course: string | null }
+type RoadmapStage = {
+  id: JourneyStageId
+  number: string
+  title: string
+  subtitle: string
+  output: string
+  mission: string
+  proof: string
+  skipHint: string
+  time: string
+  skills: string[]
+  route: string | null
+  course: string | null
+}
+type RouteProfile = {
+  id: string
+  title: string
+  note: string
+  result: string
+  frontend: JourneyConfig['frontend']
+  backend: JourneyConfig['backend']
+  database: JourneyConfig['database']
+}
 
 const projectChoices: Choice[] = [
   { id: 'portfolio', name: '个人作品集', note: '展示你的介绍、技能与第一批作品', badge: '推荐' },
@@ -26,6 +48,63 @@ const databaseChoices: Choice[] = [
   { id: 'later', name: '暂时不需要', note: '静态网站阶段可以跳过数据库' },
 ]
 
+const routeProfiles: RouteProfile[] = [
+  { id: 'first', title: '我第一次做网站', note: '先做出能分享的页面，再决定是否增加服务器功能', result: '原生网页 · 暂不使用后端和数据库', frontend: 'vanilla', backend: 'later', database: 'later' },
+  { id: 'frontend', title: '我想学现代前端', note: '先补齐网页基础，再用 Vue 把页面拆成组件', result: 'Vue 3 · 先完成静态网站', frontend: 'vue', backend: 'later', database: 'later' },
+  { id: 'fullstack', title: '我想做完整系统', note: '页面、接口和数据都会学习，路线更长也更完整', result: 'Vue 3 · Spring Boot · MySQL', frontend: 'vue', backend: 'java', database: 'mysql' },
+]
+
+const technologyFlow = [
+  { name: '浏览器', role: '把网站展示给访客', example: '你打开网址、点击按钮，都发生在这里。' },
+  { name: '前端', role: '决定页面和交互', example: 'HTML 放内容，CSS 管外观，JavaScript 和 Vue 处理变化。' },
+  { name: '后端', role: '处理规则和请求', example: '登录是否成功、可以看哪些内容，都由后端判断。' },
+  { name: '数据库', role: '长期保存数据', example: '文章、作品和账号保存在这里，刷新页面也不会消失。' },
+]
+
+const projectStageCopy: Record<string, Partial<Record<JourneyStageId, { mission: string; proof: string }>>> = {
+  portfolio: {
+    intro: { mission: '写好个人介绍，并放上第一项想展示的作品', proof: '首页能清楚介绍你，并出现一个真实作品区' },
+    style: { mission: '为作品卡片设计颜色、间距和布局', proof: '作品卡片在电脑和手机上都清楚易读' },
+    interaction: { mission: '为作品增加分类筛选或详情展开', proof: '访客点击后，能看到正确的作品内容' },
+    framework: { mission: '把作品卡片拆成 Vue 组件，用数组生成多张卡片', proof: '新增一条作品数据，页面会自动多出一张卡片' },
+    publish: { mission: '构建并发布第一版个人作品集', proof: '获得一个其他设备也能打开的网址' },
+    backend: { mission: '编写作品列表接口，让前端读取真实数据', proof: '页面能从接口成功显示作品列表' },
+    database: { mission: '设计作品表，并保存标题、介绍和链接', proof: '重启服务后，作品数据仍然存在' },
+    launch: { mission: '检查内容、手机布局、链接和访问速度', proof: '陌生访客能顺利看懂并浏览你的作品' },
+  },
+  blog: {
+    intro: { mission: '写好博客介绍，并完成第一篇短文章', proof: '首页能说明博客主题，并出现一篇真实文章' },
+    style: { mission: '为文章列表设计舒服的阅读排版', proof: '标题、摘要和正文层级清楚，手机上也能阅读' },
+    interaction: { mission: '增加文章展开或主题筛选', proof: '访客可以找到并打开想看的文章' },
+    framework: { mission: '把文章卡片拆成 Vue 组件，用数组生成文章列表', proof: '新增一条文章数据，列表会自动更新' },
+    publish: { mission: '构建并发布第一版兴趣博客', proof: '获得一个可以分享给朋友的网址' },
+    backend: { mission: '编写文章接口，让前端读取文章列表', proof: '页面能从接口成功显示文章内容' },
+    database: { mission: '设计文章表，并保存标题、摘要和正文', proof: '重启服务后，文章仍然能够打开' },
+    launch: { mission: '检查阅读体验、文章链接和手机布局', proof: '访客可以顺利找到并阅读第一篇文章' },
+  },
+  campus: {
+    intro: { mission: '写好站点说明，并发布第一条校园活动', proof: '首页能说明服务对象，并出现一条真实活动' },
+    style: { mission: '为活动列表设计清楚的时间与地点层级', proof: '访客一眼能看清活动名称、时间和地点' },
+    interaction: { mission: '增加活动详情展开或日期筛选', proof: '访客可以快速找到自己能参加的活动' },
+    framework: { mission: '把活动卡片拆成 Vue 组件，用数组生成活动列表', proof: '新增一条活动数据，页面会自动更新' },
+    publish: { mission: '构建并发布第一版校园信息站', proof: '获得一个可以发给同学的网址' },
+    backend: { mission: '编写活动接口，让前端读取活动列表', proof: '页面能从接口成功显示校园活动' },
+    database: { mission: '设计活动表，并保存时间、地点和介绍', proof: '重启服务后，活动信息仍然存在' },
+    launch: { mission: '检查信息准确性、手机布局和所有链接', proof: '同学可以顺利查到一条有用的校园信息' },
+  },
+}
+
+const stageSkipHints: Record<JourneyStageId, string> = {
+  intro: '能独立创建 HTML 文件，并用标题、段落和图片组织首页',
+  style: '能使用盒模型和 Flex 布局完成响应式卡片',
+  interaction: '能处理点击事件，并根据状态更新页面',
+  framework: '能创建 Vue 项目、编写组件并渲染列表',
+  publish: '能使用 Git、完成构建并发布静态网站',
+  backend: '能编写 REST 接口并让前端成功请求',
+  database: '能设计数据表，并完成基本增删改查',
+  launch: '完成最终检查后才能结束路线',
+}
+
 const courses = ref<CourseSummary[]>([])
 const completedStages = ref<JourneyStageId[]>([])
 const skippedStages = ref<JourneyStageId[]>([])
@@ -35,6 +114,10 @@ const loadingJourney = ref(true)
 const savingJourney = ref(false)
 const skippingStage = ref<JourneyStageId | null>(null)
 const journeyError = ref('')
+const selectionMode = ref<'guided' | 'manual'>('guided')
+const selectedProfile = ref('first')
+const primerStep = ref(0)
+let primerTimer: number | undefined
 const config = ref<JourneyConfig>({
   project: defaultJourney.project,
   frontend: defaultJourney.frontend,
@@ -45,10 +128,11 @@ const savedConfig = ref<JourneyConfig | null>(null)
 
 const choiceName = (choices: Choice[], id: string) => choices.find((item) => item.id === id)?.name ?? id
 const projectName = computed(() => choiceName(projectChoices, config.value.project))
+const activeTechnology = computed(() => technologyFlow[primerStep.value])
 const stackSummary = computed(() => [
   choiceName(frontendChoices, config.value.frontend),
   choiceName(backendChoices, config.value.backend),
-  config.value.backend === 'later' ? null : choiceName(databaseChoices, config.value.database),
+  config.value.backend === 'later' || config.value.database === 'later' ? null : choiceName(databaseChoices, config.value.database),
 ].filter(Boolean).join(' · '))
 const selectedTechnologyGuide = computed(() => [
   {
@@ -68,15 +152,42 @@ const selectedTechnologyGuide = computed(() => [
         : '个人主页和作品集可以先不接后端，完成发布后再逐步升级。',
   },
   {
-    name: config.value.backend === 'later' ? '暂不使用数据库' : config.value.database === 'sqlite' ? 'SQLite 数据库' : 'MySQL 数据库',
-    role: config.value.backend === 'later' ? '当前阶段无需保存服务器数据' : '负责长期保存用户、文章和作品',
-    detail: config.value.backend === 'later'
+    name: config.value.backend === 'later' || config.value.database === 'later' ? '暂不使用数据库' : config.value.database === 'sqlite' ? 'SQLite 数据库' : 'MySQL 数据库',
+    role: config.value.backend === 'later' || config.value.database === 'later' ? '当前阶段无需保存服务器数据' : '负责长期保存用户、文章和作品',
+    detail: config.value.backend === 'later' || config.value.database === 'later'
       ? '静态网站的文字直接写在项目里，适合先把第一份作品快速做出来。'
       : config.value.database === 'sqlite'
         ? 'SQLite 把数据库放在一个文件里，不用单独启动服务，适合小项目。'
         : 'MySQL 是常用的关系数据库，适合系统学习表、SQL、事务和索引。',
   },
 ])
+
+const selectedProfileInfo = computed(() => routeProfiles.find((item) => item.id === selectedProfile.value) ?? routeProfiles[0])
+
+function showTechnology(index: number) {
+  primerStep.value = index
+  restartPrimerTimer()
+}
+
+function restartPrimerTimer() {
+  if (primerTimer) window.clearInterval(primerTimer)
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  primerTimer = window.setInterval(() => {
+    primerStep.value = (primerStep.value + 1) % technologyFlow.length
+  }, 3200)
+}
+
+function useGuidedSelection() {
+  selectionMode.value = 'guided'
+  applyRecommendation(selectedProfileInfo.value)
+}
+
+function applyRecommendation(profile: RouteProfile) {
+  selectedProfile.value = profile.id
+  config.value.frontend = profile.frontend
+  config.value.backend = profile.backend
+  config.value.database = profile.database
+}
 
 const courseLink = (title: string) => {
   const course = courses.value.find((item) => item.title === title)
@@ -90,7 +201,7 @@ const routeCourseTitles = computed(() => [
   'JavaScript 网页交互',
   config.value.frontend === 'vue' ? 'Vue 3 前端开发' : null,
   config.value.backend === 'java' ? 'Java Web 应用开发' : config.value.backend === 'python' ? 'FastAPI 后端开发' : null,
-  config.value.backend === 'later' ? null : '数据库原理',
+  config.value.backend === 'later' || config.value.database === 'later' ? null : '数据库原理',
   '软件工程与 Git 协作',
 ].filter((item): item is string => Boolean(item)))
 
@@ -100,17 +211,28 @@ const stages = computed(() => {
   const backendLabel = config.value.backend === 'python' ? 'Python 接口' : 'Spring Boot 接口'
   const databaseLabel = config.value.database === 'sqlite' ? 'SQLite' : 'MySQL'
   const items: RoadmapStage[] = []
-  const addStage = (stage: Omit<RoadmapStage, 'number'>) => items.push({ ...stage, number: String(items.length + 1).padStart(2, '0') })
+  const addStage = (stage: Omit<RoadmapStage, 'number' | 'mission' | 'proof' | 'skipHint'>) => {
+    const copy = projectStageCopy[config.value.project]?.[stage.id]
+    items.push({
+      ...stage,
+      mission: copy?.mission ?? stage.subtitle,
+      proof: copy?.proof ?? stage.output,
+      skipHint: stageSkipHints[stage.id],
+      number: String(items.length + 1).padStart(2, '0'),
+    })
+  }
   addStage({ id: 'intro', title: '你好，这是我的网站', subtitle: `把名字和兴趣放进${siteLabel}`, output: '浏览器中出现属于你的首页', time: '25 分钟', skills: ['HTML 结构', '文字与图片'], route: '/courses/first-page', course: null })
   addStage({ id: 'style', title: '给网站换件衣服', subtitle: '用颜色、字体和留白做出自己的风格', output: '完成一套个人视觉主题', time: '45 分钟', skills: ['CSS', '盒模型', 'Flex 布局'], route: '/courses/style-workshop', course: null })
   addStage({ id: 'interaction', title: '让按钮真的有反应', subtitle: `用${frontendFramework}做导航、卡片和主题切换`, output: '页面可以响应点击与输入', time: '1.5 小时', skills: ['变量与函数', '事件', '状态'], route: '/courses/interaction-workshop', course: null })
   if (config.value.frontend === 'vue') {
-    addStage({ id: 'framework', title: '把页面装进 Vue', subtitle: '用组件和响应式数据重新组织不断长大的页面', output: '一个结构清楚的 Vue 单页应用', time: '4 小时', skills: ['Vue 3', '组件', '路由与状态'], route: courseLink('Vue 3 前端开发'), course: 'Vue 3 前端开发' })
+    addStage({ id: 'framework', title: '把页面装进 Vue', subtitle: '用组件和响应式数据重新组织不断长大的页面', output: '一个结构清楚的 Vue 单页应用', time: '4 个短任务', skills: ['Vue 3', '组件', '列表渲染'], route: courseLink('Vue 3 前端开发'), course: 'Vue 3 前端开发' })
   }
   addStage({ id: 'publish', title: '先发给朋友看看', subtitle: '保存代码、完成构建，把成果发布成可访问的网站', output: '获得第一个可分享的网站地址', time: '45 分钟', skills: ['Git', '构建', '静态部署'], route: '/courses/publish-workshop', course: null })
   if (config.value.backend !== 'later') {
-    addStage({ id: 'backend', title: '给网站接上大脑', subtitle: `用${backendLabel}接收页面请求`, output: '前端成功读取自己的接口', time: '4 小时', skills: ['HTTP', 'REST API', '调试'], route: config.value.backend === 'java' ? courseLink('Java Web 应用开发') : courseLink('FastAPI 后端开发'), course: config.value.backend === 'java' ? 'Java Web 应用开发' : 'FastAPI 后端开发' })
-    addStage({ id: 'database', title: '让内容记得住', subtitle: `把文章和作品保存到 ${databaseLabel}`, output: '刷新页面后数据依然存在', time: '3 小时', skills: ['数据表', 'SQL', '数据持久化'], route: courseLink('数据库原理'), course: '数据库原理' })
+    addStage({ id: 'backend', title: '给网站接上大脑', subtitle: `用${backendLabel}接收页面请求`, output: '前端成功读取自己的接口', time: '4 个短任务', skills: ['HTTP', 'REST API', '调试'], route: config.value.backend === 'java' ? courseLink('Java Web 应用开发') : courseLink('FastAPI 后端开发'), course: config.value.backend === 'java' ? 'Java Web 应用开发' : 'FastAPI 后端开发' })
+    if (config.value.database !== 'later') {
+      addStage({ id: 'database', title: '让内容记得住', subtitle: `把文章和作品保存到 ${databaseLabel}`, output: '刷新页面后数据依然存在', time: '3 个短任务', skills: ['数据表', 'SQL', '数据持久化'], route: courseLink('数据库原理'), course: '数据库原理' })
+    }
   }
   addStage({ id: 'launch', title: '上线前的最后巡检', subtitle: launchDescription(config.value.backend), output: `完成可以展示的${siteLabel}`, time: '1.5 小时', skills: ['质量检查', '移动端', '交付说明'], route: '/courses/launch-workshop', course: null })
   return items
@@ -188,6 +310,7 @@ function cancelEditing() {
 }
 
 onMounted(async () => {
+  restartPrimerTimer()
   try { courses.value = await api<CourseSummary[]>('/api/courses') }
   catch { courses.value = [] }
   try {
@@ -198,11 +321,17 @@ onMounted(async () => {
     skippedStages.value = journey.skippedStages
     configured.value = journey.configured
     editing.value = !journey.configured
+    selectionMode.value = journey.configured ? 'manual' : 'guided'
+    if (!journey.configured) applyRecommendation(routeProfiles[0])
   } catch (cause) {
     journeyError.value = cause instanceof Error ? cause.message : '建站路线加载失败'
   } finally {
     loadingJourney.value = false
   }
+})
+
+onBeforeUnmount(() => {
+  if (primerTimer) window.clearInterval(primerTimer)
 })
 </script>
 
@@ -216,27 +345,58 @@ onMounted(async () => {
     <div v-if="loadingJourney" class="state-card glass-card"><span class="loader"></span><p>正在读取你的建站路线…</p></div>
     <div v-else-if="journeyError && !configured" class="state-card glass-card"><strong>建站路线暂时无法读取</strong><p>{{ journeyError }}</p><button type="button" @click="$router.go(0)">重新加载</button></div>
     <section v-else-if="editing" class="journey-builder glass-card">
-      <div class="builder-intro"><span>路线定制</span><h3>{{ configured ? '重新选择你的建站工具' : '你想做一个什么样的网站？' }}</h3><p>不了解这些名字也没关系，我们已经标出了更适合第一次建站的选择。</p></div>
+      <div class="builder-intro"><span>路线定制</span><h3>{{ configured ? '重新安排你的建站路线' : '先看懂网站，再决定怎么学' }}</h3><p>不用先认识 Vue、Spring Boot 或 MySQL。看完下面这段演示，再按自己想做的成果选择。</p></div>
 
       <section class="technology-primer">
-        <div class="primer-heading"><span>先别急着选</span><h3>一个网站，其实是几位搭档在合作</h3><p>你现在不需要记住所有名词，只要先看懂数据从哪里来、页面由谁负责。</p></div>
-        <div class="website-flow"><div><i>1</i><strong>浏览器</strong><span>展示页面、接收点击</span></div><b>→</b><div><i>2</i><strong>前端</strong><span>决定内容、样式与交互</span></div><b>⇄</b><div><i>3</i><strong>后端</strong><span>处理规则并提供接口</span></div><b>⇄</b><div><i>4</i><strong>数据库</strong><span>把数据长期保存</span></div></div>
-        <div class="plain-tech-notes"><p><b>HTML</b> 放内容，<b>CSS</b> 管外观，<b>JavaScript</b> 让页面有反应；<b>Vue</b> 则把这三者组织成更容易维护的组件。</p><p>框架是一套帮你组织代码的工具，不是另一种编程语言。选 Vue 之后，路线仍会先带你补齐网页基础。</p></div>
+        <div class="primer-heading"><span>60 秒看懂</span><h3>你点开一个网站时，谁在工作？</h3><p>动画会沿着一次真实请求前进。也可以点击任意角色，单独看它负责什么。</p></div>
+        <div class="technology-story">
+          <div class="website-flow" aria-label="网站技术工作流程">
+            <template v-for="(item, index) in technologyFlow" :key="item.name">
+              <button type="button" :class="{ active: primerStep === index, visited: primerStep > index }" @click="showTechnology(index)">
+                <i>{{ index + 1 }}</i><strong>{{ item.name }}</strong><span>{{ item.role }}</span>
+              </button>
+              <b v-if="index < technologyFlow.length - 1" :class="{ active: primerStep > index }">→</b>
+            </template>
+          </div>
+          <article class="technology-scene" aria-live="polite">
+            <span>现在看到第 {{ primerStep + 1 }} 步</span>
+            <h4>{{ activeTechnology.name }}：{{ activeTechnology.role }}</h4>
+            <p>{{ activeTechnology.example }}</p>
+            <div><i :style="{ width: `${(primerStep + 1) / technologyFlow.length * 100}%` }"></i></div>
+          </article>
+        </div>
+        <div class="plain-tech-notes"><p><b>HTML</b> 放内容，<b>CSS</b> 管外观，<b>JavaScript</b> 让页面有反应；<b>Vue</b> 帮你把这些代码整理成组件。</p><p>只有登录、评论或长期保存内容时，网站才需要后端和数据库。第一次建站可以先把页面做出来。</p></div>
       </section>
 
       <div class="choice-section"><div class="choice-title"><b>1</b><div><h4>先选一个作品方向</h4><p>课程中的例子会跟着你的主题变化。</p></div></div><div class="choice-grid project-choice-grid"><button v-for="item in projectChoices" :key="item.id" type="button" :class="{ selected: config.project === item.id }" @click="choose('project', item.id)"><span v-if="item.badge">{{ item.badge }}</span><strong>{{ item.name }}</strong><small>{{ item.note }}</small><i>{{ config.project === item.id ? '✓' : '○' }}</i></button></div></div>
 
-      <div class="choice-section"><div class="choice-title"><b>2</b><div><h4>页面准备用什么做？</h4><p>HTML、CSS 和 JavaScript 会从零讲起。</p></div></div><div class="choice-grid"><button v-for="item in frontendChoices" :key="item.id" type="button" :class="{ selected: config.frontend === item.id }" @click="choose('frontend', item.id)"><span v-if="item.badge">{{ item.badge }}</span><strong>{{ item.name }}</strong><small>{{ item.note }}</small><i>{{ config.frontend === item.id ? '✓' : '○' }}</i></button></div></div>
+      <section class="choice-section route-choice-section">
+        <div class="choice-title"><b>2</b><div><h4>你希望怎样选择技术？</h4><p>不懂技术名称时按目标选择；已经了解技术时可以自己搭配。</p></div></div>
+        <div class="route-choice-tabs" role="tablist" aria-label="技术路线选择方式">
+          <button type="button" role="tab" :aria-selected="selectionMode === 'guided'" :class="{ active: selectionMode === 'guided' }" @click="useGuidedSelection">帮我推荐</button>
+          <button type="button" role="tab" :aria-selected="selectionMode === 'manual'" :class="{ active: selectionMode === 'manual' }" @click="selectionMode = 'manual'">我想自己选</button>
+        </div>
 
-      <div class="choice-section"><div class="choice-title"><b>3</b><div><h4>需要后端和数据库吗？</h4><p>想尽快看到成果，可以先做静态网站。</p></div></div><div class="stack-choice-columns"><div><label>后端语言与框架</label><div class="choice-grid compact"><button v-for="item in backendChoices" :key="item.id" type="button" :class="{ selected: config.backend === item.id }" @click="choose('backend', item.id)"><span v-if="item.badge">{{ item.badge }}</span><strong>{{ item.name }}</strong><small>{{ item.note }}</small><i>{{ config.backend === item.id ? '✓' : '○' }}</i></button></div></div><div :class="{ muted: config.backend === 'later' }"><label>数据存在哪里</label><div class="choice-grid compact"><button v-for="item in databaseChoices" :key="item.id" type="button" :disabled="config.backend === 'later'" :class="{ selected: config.database === item.id }" @click="choose('database', item.id)"><span v-if="item.badge">{{ item.badge }}</span><strong>{{ item.name }}</strong><small>{{ item.note }}</small><i>{{ config.database === item.id ? '✓' : '○' }}</i></button></div></div></div></div>
+        <div v-if="selectionMode === 'guided'" class="route-profile-grid">
+          <button v-for="profile in routeProfiles" :key="profile.id" type="button" :class="{ selected: selectedProfile === profile.id }" @click="applyRecommendation(profile)">
+            <i>{{ selectedProfile === profile.id ? '✓' : '○' }}</i><strong>{{ profile.title }}</strong><span>{{ profile.note }}</span><small>{{ profile.result }}</small>
+          </button>
+          <div class="recommendation-result"><span>为什么这样推荐</span><strong>{{ selectedProfileInfo.title }}</strong><p>{{ selectedProfileInfo.note }}。路线会先补齐 HTML、CSS 和 JavaScript，需要时再加入其他工具。</p></div>
+        </div>
 
-      <section class="selected-tech-guide"><div class="choice-title"><b>4</b><div><h4>你选的工具分别做什么？</h4><p>改变上面的选择，这里的解释也会跟着变化。</p></div></div><div><article v-for="item in selectedTechnologyGuide" :key="item.name"><span>{{ item.role }}</span><h4>{{ item.name }}</h4><p>{{ item.detail }}</p></article></div></section>
+        <div v-else class="manual-stack-picker">
+          <div><label>页面用什么做？</label><div class="choice-grid"><button v-for="item in frontendChoices" :key="item.id" type="button" :class="{ selected: config.frontend === item.id }" @click="choose('frontend', item.id)"><span v-if="item.badge">{{ item.badge }}</span><strong>{{ item.name }}</strong><small>{{ item.note }}</small><i>{{ config.frontend === item.id ? '✓' : '○' }}</i></button></div></div>
+          <div class="stack-choice-columns"><div><label>后端语言与框架</label><div class="choice-grid compact"><button v-for="item in backendChoices" :key="item.id" type="button" :class="{ selected: config.backend === item.id }" @click="choose('backend', item.id)"><span v-if="item.badge">{{ item.badge }}</span><strong>{{ item.name }}</strong><small>{{ item.note }}</small><i>{{ config.backend === item.id ? '✓' : '○' }}</i></button></div></div><div :class="{ muted: config.backend === 'later' }"><label>数据存在哪里</label><div class="choice-grid compact"><button v-for="item in databaseChoices" :key="item.id" type="button" :disabled="config.backend === 'later'" :class="{ selected: config.database === item.id }" @click="choose('database', item.id)"><span v-if="item.badge">{{ item.badge }}</span><strong>{{ item.name }}</strong><small>{{ item.note }}</small><i>{{ config.database === item.id ? '✓' : '○' }}</i></button></div></div></div>
+        </div>
+      </section>
+
+      <section class="selected-tech-guide"><div class="choice-title"><b>3</b><div><h4>确认每件工具的工作</h4><p>生成路线前，只需要确认它们是否符合你想做的成果。</p></div></div><div><article v-for="item in selectedTechnologyGuide" :key="item.name"><span>{{ item.role }}</span><h4>{{ item.name }}</h4><p>{{ item.detail }}</p></article></div></section>
 
       <p v-if="journeyError" class="practice-error">{{ journeyError }}</p><footer class="builder-footer"><div><small>你的路线</small><strong>{{ projectName }}</strong><span>{{ stackSummary }}</span></div><div><button v-if="configured" class="ghost-button" type="button" @click="cancelEditing">取消</button><button class="primary-journey-button" type="button" :disabled="savingJourney" @click="createJourney">{{ savingJourney ? '正在保存到数据库…' : '生成我的建站之旅 →' }}</button></div></footer>
     </section>
 
     <template v-else>
-      <section class="journey-summary glass-card"><div class="journey-project-mark">{{ projectName.slice(0, 1) }}</div><div><span>我的第一个网站</span><h3>{{ projectName }}</h3><p>{{ stackSummary }}</p></div><div class="journey-progress"><span><b>{{ resolvedCount }}</b> / {{ stages.length }} 站</span><div><i :style="{ width: `${progressPercent}%` }"></i></div><small>{{ resolvedCount === stages.length ? '路线已全部完成' : `下一站：${nextStageTitle}` }}<template v-if="skippedCount"> · 已跳过 {{ skippedCount }} 站</template></small></div></section>
+      <section class="journey-summary glass-card"><div class="journey-project-mark">{{ projectName.slice(0, 1) }}</div><div><span>我的第一个网站</span><h3>{{ projectName }}</h3><p>{{ stackSummary }}</p></div><div class="journey-progress"><span><b>{{ resolvedCount }}</b> / {{ stages.length }} 站</span><div><i :style="{ width: `${progressPercent}%` }"></i></div><small>{{ resolvedCount === stages.length ? '路线已全部完成' : `下一站：${nextStageTitle}` }} · 已完成 {{ resolvedCount - skippedCount }}<template v-if="skippedCount"> · 跳过 {{ skippedCount }}</template></small></div></section>
 
       <section class="route-course-strip"><div><span>这条路线会用到</span><strong>{{ routeCourseTitles.length }} 门配套技术课</strong></div><div><template v-for="title in routeCourseTitles" :key="title"><RouterLink v-if="courseLink(title)" :to="courseLink(title) || '/knowledge'">{{ title }} <span>↗</span></RouterLink><span v-else>{{ title }}</span></template></div></section>
 
@@ -245,8 +405,8 @@ onMounted(async () => {
       <div class="journey-roadmap">
         <article v-for="(stage, index) in stages" :key="stage.number" class="roadmap-stage glass-card" :class="{ current: index === currentIndex, completed: isStageCompleted(stage), skipped: isStageSkipped(stage), locked: !isStageUnlocked(index) }">
           <div class="stage-number">{{ isStageCompleted(stage) ? '✓' : isStageSkipped(stage) ? '跳' : stage.number }}<i></i></div>
-          <div class="stage-main"><div class="stage-label"><span>{{ isStageCompleted(stage) ? '这一站已完成' : isStageSkipped(stage) ? '已跳过，随时可以回来补学' : index === currentIndex ? '现在从这里开始' : index === stages.length - 1 ? '最终作品' : '建站阶段' }}</span><em>{{ stage.time }}</em></div><h3>{{ stage.title }}</h3><p>{{ stage.subtitle }}</p><div class="stage-skills"><span v-for="skill in stage.skills" :key="skill">{{ skill }}</span></div><div class="stage-output"><small>完成后你将得到</small><strong>{{ stage.output }}</strong></div></div>
-          <div class="stage-actions"><RouterLink v-if="stage.route && isStageUnlocked(index)" class="stage-action" :to="stage.route">{{ stageActionLabel(stage, index) }} <span>→</span></RouterLink><button v-else class="stage-action locked" type="button" disabled>{{ isStageUnlocked(index) ? '正在匹配课程' : '完成上一站后开启' }}</button><button v-if="canSkipStage(stage, index)" class="stage-skip" type="button" :disabled="Boolean(skippingStage)" @click="skipStage(stage.id)">{{ skippingStage === stage.id ? '正在跳过…' : '我学过这项，跳过' }}</button></div>
+          <div class="stage-main"><div class="stage-label"><span>{{ isStageCompleted(stage) ? '这一站已完成' : isStageSkipped(stage) ? '已跳过，随时可以回来补学' : index === currentIndex ? '现在从这里开始' : index === stages.length - 1 ? '最终作品' : '建站阶段' }}</span><em>{{ stage.time }}</em></div><h3>{{ stage.title }}</h3><p>{{ stage.mission }}</p><div class="stage-skills"><span v-for="skill in stage.skills" :key="skill">{{ skill }}</span></div><details class="stage-learning-plan" :open="index === currentIndex"><summary>这一站怎么学</summary><ol><li><i>1</i><span><b>看效果</b><small>先知道要给网站增加什么</small></span></li><li><i>2</i><span><b>懂一点</b><small>只学完成任务需要的知识</small></span></li><li><i>3</i><span><b>跟着做</b><small>{{ stage.mission }}</small></span></li><li><i>4</i><span><b>自己试</b><small>换一份内容，独立完成相同功能</small></span></li><li><i>5</i><span><b>对照检查</b><small>{{ stage.proof }}</small></span></li></ol></details><div class="stage-output"><small>通过标准</small><strong>{{ stage.proof }}</strong></div></div>
+          <div class="stage-actions"><RouterLink v-if="stage.route && isStageUnlocked(index)" class="stage-action" :to="stage.route">{{ stageActionLabel(stage, index) }} <span>→</span></RouterLink><button v-else class="stage-action locked" type="button" disabled>{{ isStageUnlocked(index) ? '正在匹配课程' : '完成上一站后开启' }}</button><template v-if="canSkipStage(stage, index)"><p class="stage-skip-hint">满足下面能力就能跳过：<br />{{ stage.skipHint }}</p><button class="stage-skip" type="button" :disabled="Boolean(skippingStage)" @click="skipStage(stage.id)">{{ skippingStage === stage.id ? '正在跳过…' : '我已经会了，跳过' }}</button></template></div>
         </article>
       </div>
     </template>

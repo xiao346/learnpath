@@ -9,6 +9,7 @@ export type JourneyData = JourneyConfig & {
   configured: boolean
   firstPage: FirstPageData
   style: StyleData
+  deploymentUrl: string | null
   completedStages: JourneyStageId[]
   skippedStages: JourneyStageId[]
   graduatedAt: string | null
@@ -28,6 +29,7 @@ export const defaultJourney: JourneyData = {
     theme: 'blue',
   },
   style: { accent: '#5b72f2', radius: 18, spacing: 24, shadow: true },
+  deploymentUrl: null,
   completedStages: [],
   skippedStages: [],
   graduatedAt: null,
@@ -38,7 +40,7 @@ const legacyKeys = ['learnpath_web_journey', 'learnpath_first_page', 'learnpath_
 
 export async function loadJourney() {
   let journey = await api<JourneyData>('/api/journey')
-  journey = { ...journey, skippedStages: journey.skippedStages ?? [] }
+  journey = { ...journey, skippedStages: journey.skippedStages ?? [], deploymentUrl: journey.deploymentUrl ?? null }
   const hasLegacyData = legacyKeys.some((key) => localStorage.getItem(key) !== null)
   if (!hasLegacyData) return journey
   if (journey.configured) {
@@ -82,6 +84,11 @@ export const saveJourneyFirstPage = (firstPage: FirstPageData) => api<JourneyDat
 export const saveJourneyStyle = (style: StyleData) => api<JourneyData>('/api/journey/style', {
   method: 'PUT',
   body: JSON.stringify(style),
+})
+
+export const saveJourneyDeployment = (deploymentUrl: string) => api<JourneyData>('/api/journey/deployment', {
+  method: 'PUT',
+  body: JSON.stringify({ deploymentUrl }),
 })
 
 export const completeJourneyStage = (stage: JourneyStageId) => api<JourneyData>(`/api/journey/stages/${stage}/complete`, {

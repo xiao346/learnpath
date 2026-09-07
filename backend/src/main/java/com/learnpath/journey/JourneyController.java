@@ -5,6 +5,7 @@ import com.learnpath.common.ApiResponse;
 import com.learnpath.journey.JourneyDtos.JourneyView;
 import com.learnpath.journey.JourneyDtos.SaveFirstPageRequest;
 import com.learnpath.journey.JourneyDtos.SaveJourneyRequest;
+import com.learnpath.journey.JourneyDtos.SaveDeploymentRequest;
 import com.learnpath.journey.JourneyDtos.SaveStyleRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
@@ -50,6 +51,12 @@ public class JourneyController {
     public ApiResponse<JourneyView> saveStyle(@RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
                                               @Valid @RequestBody SaveStyleRequest request) {
         return ApiResponse.ok("页面样式已保存", journeyService.saveStyle(userId(authorization), request));
+    }
+
+    @PutMapping("/deployment")
+    public ApiResponse<JourneyView> saveDeployment(@RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+                                                   @Valid @RequestBody SaveDeploymentRequest request) {
+        return ApiResponse.ok("网站地址已保存", journeyService.saveDeployment(userId(authorization), request));
     }
 
     @PostMapping("/stages/{stageId}/complete")

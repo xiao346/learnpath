@@ -22,6 +22,7 @@ public final class JourneyDtos {
             String database,
             FirstPageView firstPage,
             StyleView style,
+            String deploymentUrl,
             List<String> completedStages,
             List<String> skippedStages,
             Instant graduatedAt,
@@ -56,6 +57,11 @@ public final class JourneyDtos {
             @Min(0) @Max(34) int radius,
             @Min(12) @Max(42) int spacing,
             boolean shadow
+    ) {
+    }
+
+    public record SaveDeploymentRequest(
+            @NotBlank @Size(max = 500) @Pattern(regexp = "https?://.+", message = "请输入以 http:// 或 https:// 开头的网址") String deploymentUrl
     ) {
     }
 }

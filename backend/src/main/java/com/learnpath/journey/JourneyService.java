@@ -5,6 +5,7 @@ import com.learnpath.journey.JourneyDtos.FirstPageView;
 import com.learnpath.journey.JourneyDtos.JourneyView;
 import com.learnpath.journey.JourneyDtos.SaveFirstPageRequest;
 import com.learnpath.journey.JourneyDtos.SaveJourneyRequest;
+import com.learnpath.journey.JourneyDtos.SaveDeploymentRequest;
 import com.learnpath.journey.JourneyDtos.SaveStyleRequest;
 import com.learnpath.journey.JourneyDtos.StyleView;
 import org.springframework.stereotype.Service;
@@ -84,9 +85,21 @@ public class JourneyService {
     }
 
     @Transactional
+    public JourneyView saveDeployment(Long userId, SaveDeploymentRequest request) {
+        WebJourney journey = findOrCreate(userId);
+        journey.updateDeploymentUrl(request.deploymentUrl().trim());
+        journeyRepository.save(journey);
+        return refresh(userId);
+    }
+
+    @Transactional
     public JourneyView completeStage(Long userId, String stageId) {
         validateChoice(STAGES, stageId, "建站阶段");
         WebJourney journey = findOrCreate(userId);
+        if ((stageId.equals("publish") || stageId.equals("launch"))
+                && (journey.getDeploymentUrl() == null || journey.getDeploymentUrl().isBlank())) {
+            throw new IllegalArgumentException("请先在发布站保存可以访问的真实网站地址");
+        }
         journeyRepository.save(journey);
         JourneyStageProgress progress = stageRepository.findByUserIdAndStageId(userId, stageId)
                 .orElseGet(() -> new JourneyStageProgress(userId, stageId, "COMPLETED"));
@@ -141,13 +154,14 @@ public class JourneyService {
                 journey.getDatabaseType(),
                 new FirstPageView(journey.getPageName(), journey.getPageIntroduction(), journey.getPageInterest(), journey.getPageTheme()),
                 new StyleView(journey.getStyleAccent(), journey.getStyleRadius(), journey.getStyleSpacing(), journey.isStyleShadow()),
+                journey.getDeploymentUrl(),
                 completedStages, skippedStages, journey.getGraduatedAt(), journey.getUpdatedAt());
     }
 
     private JourneyView emptyView(List<String> completedStages, List<String> skippedStages) {
         return new JourneyView(false, "portfolio", "vue", "java", "mysql",
                 new FirstPageView("小途", "一名正在探索 Web 世界的大一学生。", "我喜欢摄影、音乐，也喜欢把新点子做出来。", "blue"),
-                new StyleView("#5b72f2", 18, 24, true), completedStages, skippedStages, null, null);
+                new StyleView("#5b72f2", 18, 24, true), null, completedStages, skippedStages, null, null);
     }
 
     private void validateChoice(Set<String> allowed, String value, String label) {

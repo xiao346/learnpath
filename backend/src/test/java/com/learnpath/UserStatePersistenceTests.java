@@ -9,6 +9,7 @@ import com.learnpath.game.GameDtos.GameProgressView;
 import com.learnpath.game.GameService;
 import com.learnpath.journey.JourneyDtos.JourneyView;
 import com.learnpath.journey.JourneyDtos.SaveFirstPageRequest;
+import com.learnpath.journey.JourneyDtos.SaveDeploymentRequest;
 import com.learnpath.journey.JourneyDtos.SaveJourneyRequest;
 import com.learnpath.journey.JourneyDtos.SaveStyleRequest;
 import com.learnpath.journey.JourneyService;
@@ -23,6 +24,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -40,6 +42,10 @@ class UserStatePersistenceTests {
         journeyService.saveConfiguration(userId, new SaveJourneyRequest("blog", "vue", "python", "sqlite"));
         journeyService.saveFirstPage(userId, new SaveFirstPageRequest("小林", "我在学习 Web。", "喜欢摄影和校园生活。", "green"));
         journeyService.saveStyle(userId, new SaveStyleRequest("#32ad83", 24, 30, true));
+        assertThatThrownBy(() -> journeyService.completeStage(userId, "publish"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("真实网站地址");
+        journeyService.saveDeployment(userId, new SaveDeploymentRequest("https://example.com/my-blog"));
         journeyService.completeStage(userId, "intro");
         JourneyView view = journeyService.completeStage(userId, "intro");
         JourneyView skipped = journeyService.skipStage(userId, "style");
@@ -50,6 +56,7 @@ class UserStatePersistenceTests {
         assertThat(view.backend()).isEqualTo("python");
         assertThat(view.firstPage().name()).isEqualTo("小林");
         assertThat(view.style().radius()).isEqualTo(24);
+        assertThat(view.deploymentUrl()).isEqualTo("https://example.com/my-blog");
         assertThat(view.completedStages()).containsExactly("intro");
         assertThat(skipped.skippedStages()).containsExactly("style");
         assertThat(resumed.completedStages()).containsExactly("intro", "style");
