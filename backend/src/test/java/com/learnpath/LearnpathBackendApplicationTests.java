@@ -8,10 +8,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -61,6 +63,17 @@ class LearnpathBackendApplicationTests {
 		List.of("数据结构", "数据库", "Java Web", "计算机网络", "人工智能", "大学英语", "Python", "软件工程",
 				"HTML 与 CSS", "JavaScript", "Vue 3", "FastAPI")
 				.forEach(subject -> assertThat(questionRepository.countBySubject(subject)).isGreaterThanOrEqualTo(8));
+	}
+
+	@Test
+	@Transactional
+	void courseProgressCannotSkipUnreadChapters() {
+		var course = courseRepository.findAllByPublishedTrueOrderByIdAsc().getFirst();
+		assertThatThrownBy(() -> courseService.updateProgress(987654L, course.getId(), 2))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("不能跳过");
+		var progress = courseService.updateProgress(987654L, course.getId(), 1);
+		assertThat(progress.completedLessons()).isEqualTo(1);
 	}
 
 }

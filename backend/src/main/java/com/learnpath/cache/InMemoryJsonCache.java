@@ -29,4 +29,9 @@ public class InMemoryJsonCache implements JsonCache {
     public void evict(String key) {
         values.remove(key);
     }
+
+    @Override
+    public void evictByPrefix(String keyPrefix) {
+        values.keySet().removeIf(key -> key.startsWith(keyPrefix));
+    }
 }

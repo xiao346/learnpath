@@ -24,17 +24,24 @@ public class JourneyStageProgress {
     @Column(name = "stage_id", nullable = false, length = 24)
     private String stageId;
 
+    @Column(length = 12)
+    private String status = "COMPLETED";
+
     @Column(nullable = false, updatable = false)
     private Instant completedAt = Instant.now();
 
     protected JourneyStageProgress() {
     }
 
-    public JourneyStageProgress(Long userId, String stageId) {
+    public JourneyStageProgress(Long userId, String stageId, String status) {
         this.userId = userId;
         this.stageId = stageId;
+        this.status = status;
     }
 
     public String getStageId() { return stageId; }
+    public boolean isCompleted() { return status == null || status.equals("COMPLETED"); }
+    public boolean isSkipped() { return status != null && status.equals("SKIPPED"); }
+    public void markCompleted() { status = "COMPLETED"; }
     public Instant getCompletedAt() { return completedAt; }
 }

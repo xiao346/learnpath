@@ -130,6 +130,17 @@ public class CourseService {
 
         LearningProgress progress = progressRepository.findByUserIdAndCourseId(userId, courseId)
                 .orElseGet(() -> new LearningProgress(userId, courseId, 0));
+        int currentCompletedLessons = progress.getCompletedLessons();
+        if (completedLessons < currentCompletedLessons) {
+            throw new IllegalArgumentException("不能回退已经完成的课程进度");
+        }
+        if (completedLessons > currentCompletedLessons + 1) {
+            throw new IllegalArgumentException("请按章节顺序学习，不能跳过尚未完成的章节");
+        }
+        if (completedLessons == currentCompletedLessons) {
+            return new ProgressView(courseId, currentCompletedLessons, totalLessons,
+                    percent(currentCompletedLessons, totalLessons), progress.getLastStudiedAt());
+        }
         progress.update(completedLessons);
         LearningProgress saved = progressRepository.save(progress);
         return new ProgressView(courseId, saved.getCompletedLessons(), totalLessons,

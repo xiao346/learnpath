@@ -10,6 +10,7 @@ export type JourneyData = JourneyConfig & {
   firstPage: FirstPageData
   style: StyleData
   completedStages: JourneyStageId[]
+  skippedStages: JourneyStageId[]
   graduatedAt: string | null
   updatedAt: string | null
 }
@@ -28,6 +29,7 @@ export const defaultJourney: JourneyData = {
   },
   style: { accent: '#5b72f2', radius: 18, spacing: 24, shadow: true },
   completedStages: [],
+  skippedStages: [],
   graduatedAt: null,
   updatedAt: null,
 }
@@ -36,6 +38,7 @@ const legacyKeys = ['learnpath_web_journey', 'learnpath_first_page', 'learnpath_
 
 export async function loadJourney() {
   let journey = await api<JourneyData>('/api/journey')
+  journey = { ...journey, skippedStages: journey.skippedStages ?? [] }
   const hasLegacyData = legacyKeys.some((key) => localStorage.getItem(key) !== null)
   if (!hasLegacyData) return journey
   if (journey.configured) {
@@ -82,5 +85,9 @@ export const saveJourneyStyle = (style: StyleData) => api<JourneyData>('/api/jou
 })
 
 export const completeJourneyStage = (stage: JourneyStageId) => api<JourneyData>(`/api/journey/stages/${stage}/complete`, {
+  method: 'POST',
+})
+
+export const skipJourneyStage = (stage: JourneyStageId) => api<JourneyData>(`/api/journey/stages/${stage}/skip`, {
   method: 'POST',
 })

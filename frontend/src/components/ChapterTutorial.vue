@@ -1,12 +1,18 @@
 <script setup lang="ts">
+import { nextTick, ref } from 'vue'
 import type { ChapterTutorial } from '../content/chapterTutorials'
 import NetworkMechanismFigure from './NetworkMechanismFigure.vue'
 import DatabaseMechanismFigure from './DatabaseMechanismFigure.vue'
 import KnowledgePointDiagram from './KnowledgePointDiagram.vue'
 import '../styles/tutorial-theme.css'
 
-defineProps<{ tutorial: ChapterTutorial; chapterTitle: string; courseTitle: string }>()
-function goToSection(id: string) {
+const props = defineProps<{ tutorial: ChapterTutorial; chapterTitle: string; courseTitle: string }>()
+const deepDiveOpen = ref(false)
+async function goToSection(id: string) {
+  if (props.tutorial.sections.findIndex(section => section.id === id) >= 2) {
+    deepDiveOpen.value = true
+    await nextTick()
+  }
   const target = document.getElementById(`tutorial-${id}`)
   target?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
   target?.focus({ preventScroll: true })
@@ -21,30 +27,36 @@ function printTutorial() { window.print() }
       <h3>{{ chapterTitle }}</h3>
       <p class="tutorial-lead">{{ tutorial.lead }}</p>
       <p class="tutorial-scenario">{{ tutorial.scenario }}</p>
+      <div class="tutorial-mode" aria-label="选择学习深度"><div><strong>{{ deepDiveOpen ? '完整学习' : '快速入门' }}</strong><span>{{ deepDiveOpen ? '核心内容、跟做示例和深入原理全部展开' : '先掌握两个核心点，再完成一个跟做示例' }}</span></div><div><button type="button" :class="{ active: !deepDiveOpen }" @click="deepDiveOpen = false">快速入门</button><button type="button" :class="{ active: deepDiveOpen }" @click="deepDiveOpen = true">完整学习</button></div></div>
     </header>
-    <nav class="tutorial-toc" aria-label="本章阅读目录"><strong>阅读路线</strong><ol><li v-for="section in tutorial.sections" :key="section.id"><button type="button" @click="goToSection(section.id)">{{ section.title }}</button></li></ol></nav>
-    <section v-if="tutorial.guidedPractice" class="guided-practice" aria-label="完整跟做示例">
-      <span>先完整跟做一次</span>
-      <h4>{{ tutorial.guidedPractice.title }}</h4>
-      <p>{{ tutorial.guidedPractice.scenario }}</p>
-      <ol><li v-for="(step, index) in tutorial.guidedPractice.steps" :key="`${step.label}-${index}`"><b>{{ String(index + 1).padStart(2, '0') }}</b><div><small>{{ step.label }}</small><strong>{{ step.action }}</strong><p>{{ step.explanation }}</p></div></li></ol>
-      <div class="guided-result"><div><small>应得到的结果</small><p>{{ tutorial.guidedPractice.result }}</p></div><div><small>换个条件再做</small><p>{{ tutorial.guidedPractice.tryIt }}</p></div></div>
-    </section>
-    <section v-for="section in tutorial.sections" :id="`tutorial-${section.id}`" :key="section.id" class="tutorial-section" tabindex="-1">
-      <h4>{{ section.title }}</h4>
-      <p v-for="paragraph in section.paragraphs" :key="paragraph">{{ paragraph }}</p>
-      <NetworkMechanismFigure v-if="section.figure" :kind="section.figure" />
-      <DatabaseMechanismFigure v-if="section.databaseFigure" :key="section.id" :kind="section.databaseFigure" />
-      <KnowledgePointDiagram v-if="section.visualIndex !== undefined" :chapter-title="chapterTitle" :course-title="courseTitle" :point-index="section.visualIndex" :title="section.title" />
-      <ol v-if="section.conceptDiagram?.length" class="tutorial-concept-flow" aria-label="知识点推演过程"><li v-for="(step, index) in section.conceptDiagram" :key="`${step.label}-${index}`"><small>{{ step.label }}</small><strong>{{ step.content }}</strong></li></ol>
-      <div v-if="section.code" class="tutorial-code"><span>{{ section.code.title }}</span><pre><code>{{ section.code.text }}</code></pre></div>
-      <div v-if="section.table" class="tutorial-table" tabindex="0" aria-label="知识对比表，可横向滚动"><table><thead><tr><th v-for="heading in section.table.headings" :key="heading" scope="col">{{ heading }}</th></tr></thead><tbody><tr v-for="(row,index) in section.table.rows" :key="index"><td v-for="(cell,i) in row" :key="i">{{ cell }}</td></tr></tbody></table></div>
-      <p v-for="paragraph in section.after" :key="paragraph">{{ paragraph }}</p>
-      <aside v-if="section.example" class="tutorial-example"><strong>放进具体例子</strong><p>{{ section.example }}</p></aside>
-      <aside v-if="section.warning" class="tutorial-warning"><strong>常见误区与修正</strong><p>{{ section.warning }}</p></aside>
-      <aside v-if="section.note" class="tutorial-note"><strong>{{ section.note.title }}</strong><p>{{ section.note.body }}</p></aside>
-      <details v-if="section.check" class="tutorial-check"><summary>{{ section.check.question }}<span>先思考，再展开解析</span></summary><p>{{ section.check.answer }}</p></details>
-    </section>
+    <nav class="tutorial-toc" aria-label="本章阅读目录"><strong>本章学习路线</strong><ol><li v-for="(section, index) in tutorial.sections" :key="section.id"><button type="button" @click="goToSection(section.id)"><span>{{ index < 2 ? '核心' : '深入' }}</span>{{ section.title }}</button></li></ol></nav>
+    <template v-for="(section, sectionIndex) in tutorial.sections" :key="section.id">
+      <div v-if="sectionIndex === 0" class="tutorial-stage-heading"><span>01</span><div><small>先学会</small><strong>先抓住本章最重要的两个关系</strong></div></div>
+      <div v-if="sectionIndex === 2 && deepDiveOpen" class="tutorial-stage-heading deep"><span>03</span><div><small>再深入</small><strong>继续理解原理、边界和常见误区</strong></div></div>
+      <section v-show="sectionIndex < 2 || deepDiveOpen" :id="`tutorial-${section.id}`" class="tutorial-section" tabindex="-1">
+        <h4>{{ section.title }}</h4>
+        <p v-for="paragraph in section.paragraphs" :key="paragraph">{{ paragraph }}</p>
+        <NetworkMechanismFigure v-if="section.figure" :kind="section.figure" />
+        <DatabaseMechanismFigure v-if="section.databaseFigure" :key="section.id" :kind="section.databaseFigure" />
+        <KnowledgePointDiagram v-if="section.visualIndex !== undefined" :chapter-title="chapterTitle" :course-title="courseTitle" :point-index="section.visualIndex" :title="section.title" />
+        <ol v-if="section.conceptDiagram?.length" class="tutorial-concept-flow" aria-label="知识点推演过程"><li v-for="(step, index) in section.conceptDiagram" :key="`${step.label}-${index}`"><small>{{ step.label }}</small><strong>{{ step.content }}</strong></li></ol>
+        <div v-if="section.code" class="tutorial-code"><span>{{ section.code.title }}</span><pre><code>{{ section.code.text }}</code></pre></div>
+        <div v-if="section.table" class="tutorial-table" tabindex="0" aria-label="知识对比表，可横向滚动"><table><thead><tr><th v-for="heading in section.table.headings" :key="heading" scope="col">{{ heading }}</th></tr></thead><tbody><tr v-for="(row,index) in section.table.rows" :key="index"><td v-for="(cell,i) in row" :key="i">{{ cell }}</td></tr></tbody></table></div>
+        <p v-for="paragraph in section.after" :key="paragraph">{{ paragraph }}</p>
+        <aside v-if="section.example" class="tutorial-example"><strong>放进具体例子</strong><p>{{ section.example }}</p></aside>
+        <aside v-if="section.warning" class="tutorial-warning"><strong>常见误区与修正</strong><p>{{ section.warning }}</p></aside>
+        <aside v-if="section.note" class="tutorial-note"><strong>{{ section.note.title }}</strong><p>{{ section.note.body }}</p></aside>
+        <details v-if="section.check" class="tutorial-check"><summary>{{ section.check.question }}<span>先思考，再展开解析</span></summary><p>{{ section.check.answer }}</p></details>
+      </section>
+      <section v-if="sectionIndex === 1 && tutorial.guidedPractice" class="guided-practice" aria-label="完整跟做示例">
+        <div class="tutorial-stage-heading practice"><span>02</span><div><small>跟着做</small><strong>先完整推演一次，再换个条件重做</strong></div></div>
+        <h4>{{ tutorial.guidedPractice.title }}</h4>
+        <p>{{ tutorial.guidedPractice.scenario }}</p>
+        <ol><li v-for="(step, index) in tutorial.guidedPractice.steps" :key="`${step.label}-${index}`"><b>{{ String(index + 1).padStart(2, '0') }}</b><div><small>{{ step.label }}</small><strong>{{ step.action }}</strong><p>{{ step.explanation }}</p></div></li></ol>
+        <div class="guided-result"><div><small>应得到的结果</small><p>{{ tutorial.guidedPractice.result }}</p></div><div><small>换个条件再做</small><p>{{ tutorial.guidedPractice.tryIt }}</p></div></div>
+      </section>
+      <section v-if="sectionIndex === 1 && tutorial.sections.length > 2" class="deep-dive-gate"><div><span>{{ tutorial.sections.length - 2 }} 个深入知识点</span><strong>{{ deepDiveOpen ? '完整内容已经展开' : '核心内容学完后，再决定是否深入' }}</strong><p>深入部分保留完整原理、图解、边界情况和误区分析，适合复习或继续钻研。</p></div><button type="button" :aria-expanded="deepDiveOpen" @click="deepDiveOpen = !deepDiveOpen">{{ deepDiveOpen ? '收起深入内容' : '继续深入学习 →' }}</button></section>
+    </template>
     <footer class="tutorial-recap"><h4>把这些关系带走</h4><ul><li v-for="point in tutorial.recap" :key="point">{{ point }}</li></ul><div v-if="tutorial.sources.length" class="tutorial-sources"><strong>继续核对原理与实现细节</strong><p>正文使用简化示例帮助理解；具体实现、选项和异常分支应以相应规范与产品行为为准。</p><ul><li v-for="source in tutorial.sources" :key="source.href"><a :href="source.href" target="_blank" rel="noopener noreferrer">{{ source.label }} ↗</a></li></ul></div></footer>
   </article>
 </template>
@@ -56,14 +68,29 @@ function printTutorial() { window.print() }
 .tutorial-opening h3 { margin: 24px 0 12px; font-size: clamp(26px, 3vw, 34px); line-height: 1.45; color: #193b53; letter-spacing: -.5px; }
 .tutorial-lead { font-size: 19px; line-height: 1.9; color: #244f6c; }
 .tutorial-scenario { margin: 22px 0 0; padding-left: 17px; border-left: 3px solid #a1c6d7; color: #577184; font-size: 15px; }
+.tutorial-mode { margin-top: 24px; padding: 14px 15px; display: flex; align-items: center; justify-content: space-between; gap: 18px; border: 1px solid #d8e5eb; border-radius: 8px; background: #f7fafc; }
+.tutorial-mode > div:first-child { display: flex; flex-direction: column; }
+.tutorial-mode strong { color: #294f65; font-size: 15px; }
+.tutorial-mode span { color: #69808f; font-size: 13px; line-height: 1.6; }
+.tutorial-mode > div:last-child { flex: 0 0 auto; display: flex; gap: 5px; padding: 4px; border-radius: 7px; background: #eaf1f5; }
+.tutorial-mode button { padding: 7px 10px; border: 0; border-radius: 5px; color: #607b8b; background: transparent; font-size: 13px; }
+.tutorial-mode button.active { color: #fff; background: #347d98; }
 .tutorial-toc { margin: 32px 0 40px; padding: 22px 0; border-block: 1px solid #dae5ed; font-size: 15px; }
 .tutorial-toc > strong { color: #284f67; font-size: 15px; }
 .tutorial-toc ol { padding-left: 24px; margin: 10px 0 0; }
 .tutorial-toc li { padding: 3px 0; color: #758c9b; }
-.tutorial-toc button { border: 0; background: transparent; padding: 2px 0; font: inherit; color: #246789; text-align: left; cursor: pointer; line-height: 1.8; }
+.tutorial-toc button { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; padding: 2px 0; font: inherit; color: #246789; text-align: left; cursor: pointer; line-height: 1.8; }
+.tutorial-toc button span { min-width: 34px; padding: 1px 5px; border: 1px solid #cbdce5; border-radius: 4px; color: #648191; font-size: 10px; line-height: 1.5; text-align: center; }
 .tutorial-toc button:hover { text-decoration: underline; text-underline-offset: 4px; }
-.guided-practice { margin: 36px 0 44px; padding: 26px; border: 1px solid #cfe0e9; border-radius: 9px; background: linear-gradient(145deg, #f5fafc, #edf5f8); }
-.guided-practice > span { color: #25708c; font-size: 12px; letter-spacing: 1px; }
+.tutorial-stage-heading { margin: 36px 0 16px; display: flex; align-items: center; gap: 12px; }
+.tutorial-stage-heading > span { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: #347d98; font-size: 11px; font-weight: 700; }
+.tutorial-stage-heading > div { display: flex; flex-direction: column; }
+.tutorial-stage-heading small { color: #28708c; font-size: 12px; letter-spacing: .8px; }
+.tutorial-stage-heading strong { color: #294d61; font-size: 15px; line-height: 1.6; }
+.tutorial-stage-heading.practice { margin: 0 0 18px; }
+.tutorial-stage-heading.practice > span { background: #3e927c; }
+.tutorial-stage-heading.deep > span { background: #9a7738; }
+.guided-practice { margin: 44px 0; padding: 26px; border: 1px solid #cfe0e9; border-radius: 9px; background: linear-gradient(145deg, #f5fafc, #edf5f8); }
 .guided-practice > h4 { margin: 7px 0 8px; color: #173e55; font-size: 22px; }
 .guided-practice > p { margin: 0; color: #597586; font-size: 15px; }
 .guided-practice > ol { margin: 22px 0 0; padding: 0; display: grid; gap: 10px; list-style: none; }
@@ -77,6 +104,12 @@ function printTutorial() { window.print() }
 .guided-result > div:last-child { border-left-color: #d4a54d; }
 .guided-result small { color: #597f91; font-size: 12px; }
 .guided-result p { margin: 6px 0 0; color: #3f5969; font-size: 14px; line-height: 1.8; }
+.deep-dive-gate { margin: 36px 0 10px; padding: 21px 22px; display: flex; align-items: center; justify-content: space-between; gap: 22px; border: 1px solid #ddcfb5; border-radius: 9px; background: #fbf8f1; }
+.deep-dive-gate > div { display: flex; flex-direction: column; }
+.deep-dive-gate span { color: #9a7334; font-size: 12px; letter-spacing: .6px; }
+.deep-dive-gate strong { margin-top: 3px; color: #5d503a; font-size: 16px; }
+.deep-dive-gate p { margin: 5px 0 0; color: #7c6f59; font-size: 13px; line-height: 1.7; }
+.deep-dive-gate button { flex: 0 0 auto; padding: 10px 13px; border: 1px solid #cdb98f; border-radius: 6px; color: #775c29; background: #fff; font-size: 13px; }
 .tutorial-section { margin-top: 42px; scroll-margin-top: 24px; }
 .tutorial-section:focus { outline: none; }
 .tutorial-section:focus-visible { outline: 2px solid #6eacc8; outline-offset: 8px; }
@@ -116,6 +149,6 @@ th { font-weight: 600; background: #eff5f9; color: #204d68; }
 .tutorial-sources ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 20px; }
 .tutorial-sources a { color: #216989; text-decoration: underline; text-underline-offset: 3px; }
 button:focus-visible, summary:focus-visible, a:focus-visible, .tutorial-table:focus-visible { outline: 2px solid #347b9a; outline-offset: 4px; }
-@media (max-width: 600px) { .chapter-tutorial { padding: 25px 20px 30px; font-size: 16px; border-radius: 8px; } .tutorial-section h4, .tutorial-recap h4 { font-size: 21px; } .tutorial-lead { font-size: 17px; } .guided-practice { padding: 19px; } .guided-result { grid-template-columns: 1fr; } .tutorial-concept-flow { grid-template-columns: 1fr; gap: 10px; } .tutorial-concept-flow li:not(:last-child)::after { content: '↓'; top: auto; right: 50%; bottom: -14px; transform: translateX(50%); } }
-@media print { .chapter-tutorial { border: 0; padding: 0; font-size: 12pt; } .reader-toolbar, .tutorial-toc { display: none; } .tutorial-section h4 { break-after: avoid; } .tutorial-table { overflow: visible; } table { min-width: 0; } .tutorial-check { display: none; } a { color: #222; } }
+@media (max-width: 600px) { .chapter-tutorial { padding: 25px 20px 30px; font-size: 16px; border-radius: 8px; } .tutorial-section h4, .tutorial-recap h4 { font-size: 21px; } .tutorial-lead { font-size: 17px; } .tutorial-mode, .deep-dive-gate { align-items: stretch; flex-direction: column; } .tutorial-mode > div:last-child { width: 100%; } .tutorial-mode button { flex: 1; } .deep-dive-gate button { width: 100%; } .guided-practice { padding: 19px; } .guided-result { grid-template-columns: 1fr; } .tutorial-concept-flow { grid-template-columns: 1fr; gap: 10px; } .tutorial-concept-flow li:not(:last-child)::after { content: '↓'; top: auto; right: 50%; bottom: -14px; transform: translateX(50%); } }
+@media print { .chapter-tutorial { border: 0; padding: 0; font-size: 12pt; } .reader-toolbar, .tutorial-toc, .tutorial-mode, .deep-dive-gate { display: none; } .tutorial-section { display: block !important; } .tutorial-section h4 { break-after: avoid; } .tutorial-table { overflow: visible; } table { min-width: 0; } .tutorial-check { display: none; } a { color: #222; } }
 </style>

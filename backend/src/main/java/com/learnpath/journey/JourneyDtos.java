@@ -23,6 +23,7 @@ public final class JourneyDtos {
             FirstPageView firstPage,
             StyleView style,
             List<String> completedStages,
+            List<String> skippedStages,
             Instant graduatedAt,
             Instant updatedAt
     ) {

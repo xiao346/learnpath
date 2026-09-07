@@ -4,7 +4,10 @@ import com.learnpath.auth.LoginResponse;
 import com.learnpath.cache.JsonCache;
 import com.learnpath.community.CommunityDtos.CommunityFeedView;
 import com.learnpath.community.CommunityDtos.CommunityImageView;
+import com.learnpath.community.CommunityDtos.CommunityCommentView;
+import com.learnpath.community.CommunityDtos.CommunityLikeView;
 import com.learnpath.community.CommunityDtos.CommunityPostView;
+import com.learnpath.community.CommunityDtos.CreateCommunityCommentRequest;
 import com.learnpath.community.CommunityDtos.CreateCommunityPostRequest;
 import com.learnpath.journey.JourneyDtos.JourneyView;
 import com.learnpath.journey.JourneyService;
@@ -22,6 +25,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class CommunityService {
@@ -37,32 +41,47 @@ public class CommunityService {
 
     private final CommunityPostRepository postRepository;
     private final CommunityPostImageRepository imageRepository;
+    private final CommunityPostLikeRepository likeRepository;
+    private final CommunityCommentRepository commentRepository;
     private final JourneyService journeyService;
     private final JsonCache cache;
 
     public CommunityService(CommunityPostRepository postRepository,
                             CommunityPostImageRepository imageRepository,
+                            CommunityPostLikeRepository likeRepository,
+                            CommunityCommentRepository commentRepository,
                             JourneyService journeyService, JsonCache cache) {
         this.postRepository = postRepository;
         this.imageRepository = imageRepository;
+        this.likeRepository = likeRepository;
+        this.commentRepository = commentRepository;
         this.journeyService = journeyService;
         this.cache = cache;
     }
 
     @Transactional(readOnly = true)
-    public CommunityFeedView list(String requestedType) {
+    public CommunityFeedView list(String requestedType, Long viewerUserId) {
         String filter = requestedType == null ? "ALL" : requestedType.trim().toUpperCase(Locale.ROOT);
         if (!filter.equals("ALL") && !filter.equals("JOURNEY") && !filter.equals("WEBSITE")) {
             throw new IllegalArgumentException("社区筛选类型无效");
         }
-        String key = cacheKey(filter);
+        String key = cacheKey(viewerUserId, filter);
         return cache.get(key, CommunityFeedView.class).orElseGet(() -> {
             List<CommunityPost> posts = filter.equals("ALL")
                     ? postRepository.findTop50ByOrderByCreatedAtDesc()
                     : postRepository.findTop50ByTypeOrderByCreatedAtDesc(CommunityPostType.valueOf(filter));
             Map<Long, List<String>> imageUrls = imageUrlsByPost(posts);
+            List<Long> postIds = posts.stream().map(CommunityPost::getId).toList();
+            Map<Long, List<CommunityPostLike>> likes = postIds.isEmpty() ? Map.of()
+                    : likeRepository.findByPostIdIn(postIds).stream()
+                    .collect(Collectors.groupingBy(CommunityPostLike::getPostId));
+            Map<Long, List<CommunityComment>> comments = postIds.isEmpty() ? Map.of()
+                    : commentRepository.findByPostIdInOrderByCreatedAtAsc(postIds).stream()
+                    .collect(Collectors.groupingBy(CommunityComment::getPostId));
             CommunityFeedView view = new CommunityFeedView(posts.stream()
-                    .map(post -> toView(post, imageUrls.getOrDefault(post.getId(), List.of())))
+                    .map(post -> toView(post, imageUrls.getOrDefault(post.getId(), List.of()),
+                            likes.getOrDefault(post.getId(), List.of()),
+                            comments.getOrDefault(post.getId(), List.of()), viewerUserId))
                     .toList(), posts.size());
             cache.put(key, view, CACHE_TTL);
             return view;
@@ -92,11 +111,37 @@ public class CommunityService {
                 throw new IllegalArgumentException("图片读取失败，请重新选择后再发布");
             }
         }
-        cache.evict(cacheKey("ALL"));
-        cache.evict(cacheKey(type.name()));
+        invalidateFeedCache();
         return toView(saved, savedImages.stream()
                 .map(image -> imageUrl(image.getPostId(), image.getId()))
-                .toList());
+                .toList(), List.of(), List.of(), author.id());
+    }
+
+    @Transactional
+    public CommunityLikeView toggleLike(Long userId, Long postId) {
+        if (!postRepository.existsById(postId)) throw new IllegalArgumentException("分享不存在或已被删除");
+        var existing = likeRepository.findByPostIdAndUserId(postId, userId);
+        boolean liked;
+        if (existing.isPresent()) {
+            likeRepository.delete(existing.get());
+            liked = false;
+        } else {
+            likeRepository.save(new CommunityPostLike(postId, userId));
+            liked = true;
+        }
+        int likeCount = Math.toIntExact(likeRepository.countByPostId(postId));
+        invalidateFeedCache();
+        return new CommunityLikeView(postId, likeCount, liked);
+    }
+
+    @Transactional
+    public CommunityCommentView comment(LoginResponse.UserView author, Long postId,
+                                         CreateCommunityCommentRequest request) {
+        if (!postRepository.existsById(postId)) throw new IllegalArgumentException("分享不存在或已被删除");
+        CommunityComment saved = commentRepository.save(new CommunityComment(
+                postId, author.id(), author.displayName(), author.role().name(), request.content().trim()));
+        invalidateFeedCache();
+        return toCommentView(saved);
     }
 
     @Transactional(readOnly = true)
@@ -163,13 +208,26 @@ public class CommunityService {
         return "/api/community/posts/" + postId + "/images/" + imageId;
     }
 
-    private CommunityPostView toView(CommunityPost post, List<String> imageUrls) {
+    private CommunityPostView toView(CommunityPost post, List<String> imageUrls,
+                                     List<CommunityPostLike> likes, List<CommunityComment> comments,
+                                     Long viewerUserId) {
         return new CommunityPostView(post.getId(), post.getUserId(), post.getAuthorName(), post.getAuthorRole(),
                 post.getType().name(), post.getTitle(), post.getContent(), post.getWebsiteUrl(),
-                post.getStackSummary(), imageUrls, post.getCreatedAt());
+                post.getStackSummary(), imageUrls, likes.size(),
+                likes.stream().anyMatch(like -> like.getUserId().equals(viewerUserId)),
+                comments.size(), comments.stream().map(this::toCommentView).toList(), post.getCreatedAt());
     }
 
-    private String cacheKey(String filter) {
-        return "community:v2:feed:" + filter.toLowerCase(Locale.ROOT);
+    private CommunityCommentView toCommentView(CommunityComment comment) {
+        return new CommunityCommentView(comment.getId(), comment.getUserId(), comment.getAuthorName(),
+                comment.getAuthorRole(), comment.getContent(), comment.getCreatedAt());
+    }
+
+    private void invalidateFeedCache() {
+        cache.evictByPrefix("community:v3:feed:");
+    }
+
+    private String cacheKey(Long viewerUserId, String filter) {
+        return "community:v3:feed:" + viewerUserId + ":" + filter.toLowerCase(Locale.ROOT);
     }
 }

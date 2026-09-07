@@ -5,7 +5,10 @@ import com.learnpath.auth.LoginResponse;
 import com.learnpath.common.ApiResponse;
 import com.learnpath.community.CommunityDtos.CommunityFeedView;
 import com.learnpath.community.CommunityDtos.CommunityImageView;
+import com.learnpath.community.CommunityDtos.CommunityCommentView;
+import com.learnpath.community.CommunityDtos.CommunityLikeView;
 import com.learnpath.community.CommunityDtos.CommunityPostView;
+import com.learnpath.community.CommunityDtos.CreateCommunityCommentRequest;
 import com.learnpath.community.CommunityDtos.CreateCommunityPostRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.CacheControl;
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -41,8 +45,25 @@ public class CommunityController {
     public ApiResponse<CommunityFeedView> posts(
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
             @RequestParam(defaultValue = "ALL") String type) {
-        authService.currentUser(authorization);
-        return ApiResponse.ok(communityService.list(type));
+        LoginResponse.UserView viewer = authService.currentUser(authorization);
+        return ApiResponse.ok(communityService.list(type, viewer.id()));
+    }
+
+    @PostMapping("/posts/{postId}/like")
+    public ApiResponse<CommunityLikeView> toggleLike(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+            @PathVariable Long postId) {
+        LoginResponse.UserView viewer = authService.currentUser(authorization);
+        return ApiResponse.ok(communityService.toggleLike(viewer.id(), postId));
+    }
+
+    @PostMapping("/posts/{postId}/comments")
+    public ApiResponse<CommunityCommentView> comment(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+            @PathVariable Long postId,
+            @Valid @RequestBody CreateCommunityCommentRequest request) {
+        LoginResponse.UserView author = authService.currentUser(authorization);
+        return ApiResponse.ok("评论已发布", communityService.comment(author, postId, request));
     }
 
     @PostMapping(value = "/posts", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

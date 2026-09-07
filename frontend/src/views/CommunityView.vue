@@ -2,7 +2,9 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import {
   loadCommunityPosts,
+  publishCommunityComment,
   publishCommunityPost,
+  toggleCommunityPostLike,
   type CommunityFilter,
   type CommunityPost,
   type CommunityPostType,
@@ -28,6 +30,11 @@ const publishedMessage = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
 const composerDialog = ref<HTMLDialogElement | null>(null)
 const selectedImages = ref<{ file: File; previewUrl: string }[]>([])
+const openCommentPosts = ref(new Set<number>())
+const likingPostIds = ref(new Set<number>())
+const commentingPostIds = ref(new Set<number>())
+const commentDrafts = ref<Record<number, string>>({})
+const interactionErrors = ref<Record<number, string>>({})
 const allowedImageTypes = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif'])
 const maxImageSize = 5 * 1024 * 1024
 
@@ -136,6 +143,57 @@ function clearSelectedImages() {
   selectedImages.value = []
 }
 
+function setBusyPost(target: typeof likingPostIds, postId: number, busy: boolean) {
+  const next = new Set(target.value)
+  if (busy) next.add(postId)
+  else next.delete(postId)
+  target.value = next
+}
+
+function setInteractionError(postId: number, message = '') {
+  interactionErrors.value = { ...interactionErrors.value, [postId]: message }
+}
+
+async function toggleLike(post: CommunityPost) {
+  if (likingPostIds.value.has(post.id)) return
+  setBusyPost(likingPostIds, post.id, true)
+  setInteractionError(post.id)
+  try {
+    const result = await toggleCommunityPostLike(post.id)
+    post.likeCount = result.likeCount
+    post.likedByCurrentUser = result.liked
+  } catch (cause) {
+    setInteractionError(post.id, cause instanceof Error ? cause.message : '点赞失败，请稍后重试')
+  } finally {
+    setBusyPost(likingPostIds, post.id, false)
+  }
+}
+
+function toggleComments(postId: number) {
+  const next = new Set(openCommentPosts.value)
+  if (next.has(postId)) next.delete(postId)
+  else next.add(postId)
+  openCommentPosts.value = next
+  setInteractionError(postId)
+}
+
+async function submitComment(post: CommunityPost) {
+  const content = (commentDrafts.value[post.id] ?? '').trim()
+  if (!content || commentingPostIds.value.has(post.id)) return
+  setBusyPost(commentingPostIds, post.id, true)
+  setInteractionError(post.id)
+  try {
+    const comment = await publishCommunityComment(post.id, content)
+    post.comments = [...post.comments, comment]
+    post.commentCount = post.comments.length
+    commentDrafts.value = { ...commentDrafts.value, [post.id]: '' }
+  } catch (cause) {
+    setInteractionError(post.id, cause instanceof Error ? cause.message : '评论发布失败，请稍后重试')
+  } finally {
+    setBusyPost(commentingPostIds, post.id, false)
+  }
+}
+
 function formatFileSize(size: number) {
   return size >= 1024 * 1024
     ? `${(size / 1024 / 1024).toFixed(1)} MB`
@@ -232,6 +290,17 @@ onBeforeUnmount(clearSelectedImages)
               </a>
             </div>
             <footer><span>{{ post.stackSummary }}</span><a v-if="post.websiteUrl" :href="post.websiteUrl" target="_blank" rel="noopener noreferrer">访问作品 ↗</a></footer>
+            <div class="community-interactions">
+              <button type="button" :class="{ active: post.likedByCurrentUser }" :disabled="likingPostIds.has(post.id)" :aria-pressed="post.likedByCurrentUser" @click="toggleLike(post)"><span>{{ post.likedByCurrentUser ? '♥' : '♡' }}</span>{{ post.likedByCurrentUser ? '已鼓励' : '给他鼓励' }}<b>{{ post.likeCount }}</b></button>
+              <button type="button" :class="{ active: openCommentPosts.has(post.id) }" :aria-expanded="openCommentPosts.has(post.id)" @click="toggleComments(post.id)"><span>◌</span>评论<b>{{ post.commentCount }}</b></button>
+            </div>
+            <section v-if="openCommentPosts.has(post.id)" class="community-comments" :aria-label="`${post.title}的评论`">
+              <div v-if="post.comments.length" class="community-comment-list"><article v-for="comment in post.comments" :key="comment.id"><div class="community-comment-avatar">{{ comment.authorName.slice(0, 1) }}</div><div><header><strong>{{ comment.authorName }}</strong><span>{{ roleLabel(comment.authorRole) }} · {{ formatTime(comment.createdAt) }}</span></header><p>{{ comment.content }}</p></div></article></div>
+              <p v-else class="community-no-comments">还没有评论，写下第一句鼓励或建议吧。</p>
+              <form class="community-comment-form" @submit.prevent="submitComment(post)"><label><span class="sr-only">评论内容</span><textarea v-model="commentDrafts[post.id]" maxlength="300" rows="2" placeholder="写一句鼓励，或给出具体的建站建议……"></textarea><small>{{ (commentDrafts[post.id] ?? '').length }} / 300</small></label><button type="submit" :disabled="!(commentDrafts[post.id] ?? '').trim() || commentingPostIds.has(post.id)">{{ commentingPostIds.has(post.id) ? '发送中…' : '发表评论' }}</button></form>
+              <p v-if="interactionErrors[post.id]" class="practice-error">{{ interactionErrors[post.id] }}</p>
+            </section>
+            <p v-else-if="interactionErrors[post.id]" class="practice-error community-interaction-error">{{ interactionErrors[post.id] }}</p>
           </article>
         </div>
       </section>

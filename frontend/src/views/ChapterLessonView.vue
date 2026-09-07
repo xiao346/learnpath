@@ -15,6 +15,9 @@ const lesson = ref<ChapterLesson | null>(null)
 const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
+const reviewConfirmed = ref(false)
+const practiceConfirmed = ref(false)
+const completionReady = computed(() => reviewConfirmed.value && practiceConfirmed.value)
 const check = computed(() => lesson.value ? chapterChecks[lesson.value.chapterTitle] : undefined)
 const tutorial = computed(() => {
   if (!lesson.value) return undefined
@@ -27,6 +30,8 @@ const tutorial = computed(() => {
 async function loadLesson() {
   loading.value = true
   error.value = ''
+  reviewConfirmed.value = false
+  practiceConfirmed.value = false
   try {
     lesson.value = await api<ChapterLesson>(`/api/courses/${route.params.courseId}/chapters/${route.params.chapterId}`)
   } catch (cause) {
@@ -100,8 +105,10 @@ watch(() => route.params.chapterId, loadLesson)
           <p>正文、知识要点和动手任务都完成后，再标记本节，形成真实学习闭环。</p>
         </div>
         <div class="lesson-finish-actions">
-          <button class="lesson-complete-button" :disabled="saving || lesson.completed" @click="completeLesson">{{ saving ? '正在保存…' : lesson.completed ? '本节已完成' : lesson.nextChapterId ? '完成并学习下一章 →' : '完成本课程' }}</button>
+          <div v-if="!lesson.completed" class="lesson-proof-checks"><label><input v-model="reviewConfirmed" type="checkbox" /><i></i><span>我已完成本章自测，并核对了解析</span></label><label><input v-model="practiceConfirmed" type="checkbox" /><i></i><span>我已完成动手任务，并检查了结果</span></label></div>
+          <button class="lesson-complete-button" :disabled="saving || lesson.completed || !completionReady" @click="completeLesson">{{ saving ? '正在保存…' : lesson.completed ? '本节已完成' : lesson.nextChapterId ? '完成并学习下一章 →' : '完成本课程' }}</button>
           <nav class="lesson-navigation" aria-label="章节导航"><button :disabled="!lesson.previousChapterId" @click="goToChapter(lesson.previousChapterId)">← 上一章</button><button :disabled="!lesson.nextChapterId" @click="goToChapter(lesson.nextChapterId)">下一章 →</button></nav>
+          <small v-if="!lesson.completed && !completionReady && !error">完成上面两项检查后即可记录进度。</small>
           <small v-if="error">{{ error }}</small>
         </div>
       </footer>
@@ -118,5 +125,12 @@ watch(() => route.params.chapterId, loadLesson)
 .chapter-check summary { color: #92e1ce; cursor: pointer; width: fit-content; padding: 6px 0; }
 .chapter-check summary:focus-visible { outline: 2px solid #92e1ce; outline-offset: 5px; }
 .chapter-check details p { margin: 15px 0 0; color: #dce6fa; font-size: 16px; line-height: 2; }
+.lesson-proof-checks { margin-bottom: 4px; display: grid; gap: 8px; }
+.lesson-proof-checks label { min-height: 42px; padding: 9px 11px; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 9px; border: 1px solid rgba(148,162,222,.12); border-radius: 9px; color: #aeb9db; background: rgba(8,12,36,.25); font-size: 13px; cursor: pointer; }
+.lesson-proof-checks input { position: absolute; opacity: 0; pointer-events: none; }
+.lesson-proof-checks i { width: 18px; height: 18px; display: grid; place-items: center; border: 1px solid #59678f; border-radius: 5px; font-style: normal; }
+.lesson-proof-checks input:checked + i { border-color: #65d1ad; background: #3ca782; }
+.lesson-proof-checks input:checked + i::after { content: '✓'; color: #fff; font-size: 11px; }
+.lesson-proof-checks label:focus-within { outline: 2px solid #6c8cff; outline-offset: 2px; }
 @media print { .chapter-check > p, .chapter-check > small, .chapter-check details p { color: #222; } }
 </style>

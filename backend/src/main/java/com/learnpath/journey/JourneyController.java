@@ -58,6 +58,12 @@ public class JourneyController {
         return ApiResponse.ok("建站阶段已完成", journeyService.completeStage(userId(authorization), stageId));
     }
 
+    @PostMapping("/stages/{stageId}/skip")
+    public ApiResponse<JourneyView> skip(@RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+                                         @PathVariable String stageId) {
+        return ApiResponse.ok("已跳过这个建站阶段", journeyService.skipStage(userId(authorization), stageId));
+    }
+
     private Long userId(String authorization) {
         return authService.currentUser(authorization).id();
     }

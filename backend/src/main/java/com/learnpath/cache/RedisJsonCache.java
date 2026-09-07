@@ -3,9 +3,11 @@ package com.learnpath.cache;
 import tools.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Optional;
 
 @Component
@@ -44,6 +46,20 @@ public class RedisJsonCache implements JsonCache {
     public void evict(String key) {
         try {
             redisTemplate.delete(PREFIX + key);
+        } catch (Exception ignored) {
+            // MySQL remains the source of truth when Redis is temporarily unavailable.
+        }
+    }
+
+    @Override
+    public void evictByPrefix(String keyPrefix) {
+        try (var cursor = redisTemplate.scan(ScanOptions.scanOptions()
+                .match(PREFIX + keyPrefix + "*")
+                .count(100)
+                .build())) {
+            var keys = new ArrayList<String>();
+            cursor.forEachRemaining(keys::add);
+            if (!keys.isEmpty()) redisTemplate.delete(keys);
         } catch (Exception ignored) {
             // MySQL remains the source of truth when Redis is temporarily unavailable.
         }

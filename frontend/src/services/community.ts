@@ -3,6 +3,15 @@ import { api } from './api'
 export type CommunityPostType = 'JOURNEY' | 'WEBSITE'
 export type CommunityFilter = 'ALL' | CommunityPostType
 
+export type CommunityComment = {
+  id: number
+  authorId: number
+  authorName: string
+  authorRole: 'STUDENT' | 'TEACHER' | 'ADMIN'
+  content: string
+  createdAt: string
+}
+
 export type CommunityPost = {
   id: number
   authorId: number
@@ -14,6 +23,10 @@ export type CommunityPost = {
   websiteUrl: string | null
   stackSummary: string
   imageUrls: string[]
+  likeCount: number
+  likedByCurrentUser: boolean
+  commentCount: number
+  comments: CommunityComment[]
   createdAt: string
 }
 
@@ -41,3 +54,12 @@ export const publishCommunityPost = (draft: CommunityPostDraft, images: File[]) 
     body: formData,
   })
 }
+
+export const toggleCommunityPostLike = (postId: number) =>
+  api<{ postId: number; likeCount: number; liked: boolean }>(`/api/community/posts/${postId}/like`, { method: 'POST' })
+
+export const publishCommunityComment = (postId: number, content: string) =>
+  api<CommunityComment>(`/api/community/posts/${postId}/comments`, {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  })

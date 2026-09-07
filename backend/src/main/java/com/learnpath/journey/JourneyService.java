@@ -24,6 +24,8 @@ public class JourneyService {
     private static final Set<String> DATABASES = Set.of("mysql", "sqlite", "later");
     private static final Set<String> STAGES = Set.of(
             "intro", "style", "interaction", "framework", "publish", "backend", "database", "launch");
+    private static final Set<String> SKIPPABLE_STAGES = Set.of(
+            "intro", "style", "interaction", "framework", "publish", "backend", "database");
 
     private final WebJourneyRepository journeyRepository;
     private final JourneyStageProgressRepository stageRepository;
@@ -40,13 +42,14 @@ public class JourneyService {
     @Transactional(readOnly = true)
     public JourneyView get(Long userId) {
         String key = cacheKey(userId);
-        return cache.get(key, JourneyView.class).orElseGet(() -> {
-            JourneyView view = journeyRepository.findByUserId(userId)
-                    .map(journey -> toView(journey, stageIds(userId)))
-                    .orElseGet(() -> emptyView(stageIds(userId)));
-            cache.put(key, view, CACHE_TTL);
-            return view;
-        });
+        var cached = cache.get(key, JourneyView.class);
+        if (cached.isPresent() && cached.get().skippedStages() != null) return cached.get();
+        List<JourneyStageProgress> stageProgress = stageRepository.findByUserIdOrderByCompletedAtAsc(userId);
+        JourneyView view = journeyRepository.findByUserId(userId)
+                .map(journey -> toView(journey, completedStageIds(stageProgress), skippedStageIds(stageProgress)))
+                .orElseGet(() -> emptyView(completedStageIds(stageProgress), skippedStageIds(stageProgress)));
+        cache.put(key, view, CACHE_TTL);
+        return view;
     }
 
     @Transactional
@@ -85,13 +88,24 @@ public class JourneyService {
         validateChoice(STAGES, stageId, "建站阶段");
         WebJourney journey = findOrCreate(userId);
         journeyRepository.save(journey);
-        if (!stageRepository.existsByUserIdAndStageId(userId, stageId)) {
-            stageRepository.save(new JourneyStageProgress(userId, stageId));
-        }
+        JourneyStageProgress progress = stageRepository.findByUserIdAndStageId(userId, stageId)
+                .orElseGet(() -> new JourneyStageProgress(userId, stageId, "COMPLETED"));
+        progress.markCompleted();
+        stageRepository.save(progress);
         if (stageId.equals("launch")) {
             journey.graduate();
             journeyRepository.save(journey);
         }
+        return refresh(userId);
+    }
+
+    @Transactional
+    public JourneyView skipStage(Long userId, String stageId) {
+        validateChoice(SKIPPABLE_STAGES, stageId, "可跳过的建站阶段");
+        WebJourney journey = findOrCreate(userId);
+        journeyRepository.save(journey);
+        JourneyStageProgress progress = stageRepository.findByUserIdAndStageId(userId, stageId).orElse(null);
+        if (progress == null) stageRepository.save(new JourneyStageProgress(userId, stageId, "SKIPPED"));
         return refresh(userId);
     }
 
@@ -102,29 +116,38 @@ public class JourneyService {
     private JourneyView refresh(Long userId) {
         cache.evict(cacheKey(userId));
         WebJourney journey = journeyRepository.findByUserId(userId).orElseThrow();
-        JourneyView view = toView(journey, stageIds(userId));
+        List<JourneyStageProgress> stageProgress = stageRepository.findByUserIdOrderByCompletedAtAsc(userId);
+        JourneyView view = toView(journey, completedStageIds(stageProgress), skippedStageIds(stageProgress));
         cache.put(cacheKey(userId), view, CACHE_TTL);
         return view;
     }
 
-    private List<String> stageIds(Long userId) {
-        return stageRepository.findByUserIdOrderByCompletedAtAsc(userId).stream()
+    private List<String> completedStageIds(List<JourneyStageProgress> stageProgress) {
+        return stageProgress.stream()
+                .filter(JourneyStageProgress::isCompleted)
                 .map(JourneyStageProgress::getStageId)
                 .toList();
     }
 
-    private JourneyView toView(WebJourney journey, List<String> stages) {
+    private List<String> skippedStageIds(List<JourneyStageProgress> stageProgress) {
+        return stageProgress.stream()
+                .filter(JourneyStageProgress::isSkipped)
+                .map(JourneyStageProgress::getStageId)
+                .toList();
+    }
+
+    private JourneyView toView(WebJourney journey, List<String> completedStages, List<String> skippedStages) {
         return new JourneyView(true, journey.getProjectType(), journey.getFrontendStack(), journey.getBackendStack(),
                 journey.getDatabaseType(),
                 new FirstPageView(journey.getPageName(), journey.getPageIntroduction(), journey.getPageInterest(), journey.getPageTheme()),
                 new StyleView(journey.getStyleAccent(), journey.getStyleRadius(), journey.getStyleSpacing(), journey.isStyleShadow()),
-                stages, journey.getGraduatedAt(), journey.getUpdatedAt());
+                completedStages, skippedStages, journey.getGraduatedAt(), journey.getUpdatedAt());
     }
 
-    private JourneyView emptyView(List<String> stages) {
+    private JourneyView emptyView(List<String> completedStages, List<String> skippedStages) {
         return new JourneyView(false, "portfolio", "vue", "java", "mysql",
                 new FirstPageView("小途", "一名正在探索 Web 世界的大一学生。", "我喜欢摄影、音乐，也喜欢把新点子做出来。", "blue"),
-                new StyleView("#5b72f2", 18, 24, true), stages, null, null);
+                new StyleView("#5b72f2", 18, 24, true), completedStages, skippedStages, null, null);
     }
 
     private void validateChoice(Set<String> allowed, String value, String label) {

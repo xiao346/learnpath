@@ -2,6 +2,7 @@ package com.learnpath;
 
 import com.learnpath.auth.LoginResponse;
 import com.learnpath.community.CommunityDtos.CommunityPostView;
+import com.learnpath.community.CommunityDtos.CreateCommunityCommentRequest;
 import com.learnpath.community.CommunityDtos.CreateCommunityPostRequest;
 import com.learnpath.community.CommunityService;
 import com.learnpath.game.GameDtos.GameProgressView;
@@ -41,6 +42,8 @@ class UserStatePersistenceTests {
         journeyService.saveStyle(userId, new SaveStyleRequest("#32ad83", 24, 30, true));
         journeyService.completeStage(userId, "intro");
         JourneyView view = journeyService.completeStage(userId, "intro");
+        JourneyView skipped = journeyService.skipStage(userId, "style");
+        JourneyView resumed = journeyService.completeStage(userId, "style");
 
         assertThat(view.configured()).isTrue();
         assertThat(view.project()).isEqualTo("blog");
@@ -48,6 +51,9 @@ class UserStatePersistenceTests {
         assertThat(view.firstPage().name()).isEqualTo("小林");
         assertThat(view.style().radius()).isEqualTo(24);
         assertThat(view.completedStages()).containsExactly("intro");
+        assertThat(skipped.skippedStages()).containsExactly("style");
+        assertThat(resumed.completedStages()).containsExactly("intro", "style");
+        assertThat(resumed.skippedStages()).isEmpty();
     }
 
     @Test
@@ -81,12 +87,24 @@ class UserStatePersistenceTests {
         var storedImage = communityService.image(published.id(), Long.valueOf(imagePath[imagePath.length - 1]));
         assertThat(storedImage.contentType()).isEqualTo("image/png");
         assertThat(storedImage.data()).containsExactly(1, 2, 3, 4);
-        assertThat(communityService.list("WEBSITE").posts())
+        var like = communityService.toggleLike(student.getId(), published.id());
+        var comment = communityService.comment(author, published.id(),
+                new CreateCommunityCommentRequest("配色很舒服，可以再补一张手机端截图。"));
+
+        assertThat(like.liked()).isTrue();
+        assertThat(like.likeCount()).isEqualTo(1);
+        assertThat(comment.authorName()).isEqualTo("林知夏");
+        assertThat(communityService.list("WEBSITE", student.getId()).posts())
                 .extracting(CommunityPostView::title)
                 .contains("我的第一个课程网站");
-        assertThat(communityService.list("WEBSITE").posts().stream()
+        CommunityPostView feedPost = communityService.list("WEBSITE", student.getId()).posts().stream()
                 .filter(post -> post.id().equals(published.id()))
-                .findFirst().orElseThrow().imageUrls()).containsExactly(published.imageUrls().getFirst());
+                .findFirst().orElseThrow();
+        assertThat(feedPost.imageUrls()).containsExactly(published.imageUrls().getFirst());
+        assertThat(feedPost.likedByCurrentUser()).isTrue();
+        assertThat(feedPost.likeCount()).isEqualTo(1);
+        assertThat(feedPost.comments()).extracting(item -> item.content())
+                .containsExactly("配色很舒服，可以再补一张手机端截图。");
     }
 
     private User student() {

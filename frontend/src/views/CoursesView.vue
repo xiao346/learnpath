@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { api, type CourseSummary } from '../services/api'
-import { defaultJourney, loadJourney, saveJourneyConfiguration, type JourneyConfig, type JourneyStageId } from '../services/journey'
+import { defaultJourney, loadJourney, saveJourneyConfiguration, skipJourneyStage, type JourneyConfig, type JourneyStageId } from '../services/journey'
 
 type Choice = { id: string; name: string; note: string; badge?: string }
 type RoadmapStage = { id: JourneyStageId; number: string; title: string; subtitle: string; output: string; time: string; skills: string[]; route: string | null; course: string | null }
@@ -28,10 +28,12 @@ const databaseChoices: Choice[] = [
 
 const courses = ref<CourseSummary[]>([])
 const completedStages = ref<JourneyStageId[]>([])
+const skippedStages = ref<JourneyStageId[]>([])
 const configured = ref(false)
 const editing = ref(true)
 const loadingJourney = ref(true)
 const savingJourney = ref(false)
+const skippingStage = ref<JourneyStageId | null>(null)
 const journeyError = ref('')
 const config = ref<JourneyConfig>({
   project: defaultJourney.project,
@@ -118,19 +120,41 @@ const isStageCompleted = (stage: { id: JourneyStageId; course?: string | null })
   if (!stage.course) return false
   return courses.value.find((course) => course.title === stage.course)?.progressPercent === 100
 }
-const completedCount = computed(() => stages.value.filter(isStageCompleted).length)
+const isStageSkipped = (stage: { id: JourneyStageId }) => skippedStages.value.includes(stage.id) && !isStageCompleted(stage)
+const isStageResolved = (stage: { id: JourneyStageId; course?: string | null }) => isStageCompleted(stage) || isStageSkipped(stage)
+const skippedCount = computed(() => stages.value.filter(isStageSkipped).length)
+const resolvedCount = computed(() => stages.value.filter(isStageResolved).length)
 const currentIndex = computed(() => {
-  const index = stages.value.findIndex((stage) => !isStageCompleted(stage))
+  const index = stages.value.findIndex((stage) => !isStageResolved(stage))
   return index < 0 ? stages.value.length - 1 : index
 })
-const progressPercent = computed(() => Math.round(completedCount.value / Math.max(stages.value.length, 1) * 100))
+const progressPercent = computed(() => Math.round(resolvedCount.value / Math.max(stages.value.length, 1) * 100))
 const nextStageTitle = computed(() => stages.value[currentIndex.value]?.title ?? '全部完成')
 
 const isStageUnlocked = (index: number) => index <= currentIndex.value
 const stageActionLabel = (stage: { id: JourneyStageId; course: string | null }, index: number) => {
+  if (isStageSkipped(stage)) return stage.course ? `补学 ${stage.course}` : '重新学习这一站'
   if (isStageCompleted(stage)) return stage.course ? `复习 ${stage.course}` : '再次练习'
   if (index === currentIndex.value) return stage.course ? `学习 ${stage.course}` : index === 0 ? '开始第一站' : '进入这一站'
   return stage.course ? `学习 ${stage.course}` : '进入这一站'
+}
+const canSkipStage = (stage: { id: JourneyStageId }, index: number) => index === currentIndex.value
+  && stage.id !== 'launch'
+  && !isStageResolved(stage)
+
+async function skipStage(stageId: JourneyStageId) {
+  if (skippingStage.value) return
+  skippingStage.value = stageId
+  journeyError.value = ''
+  try {
+    const journey = await skipJourneyStage(stageId)
+    completedStages.value = journey.completedStages
+    skippedStages.value = journey.skippedStages
+  } catch (cause) {
+    journeyError.value = cause instanceof Error ? cause.message : '暂时无法跳过这一站'
+  } finally {
+    skippingStage.value = null
+  }
 }
 
 function choose<K extends keyof JourneyConfig>(key: K, value: JourneyConfig[K]) {
@@ -147,6 +171,7 @@ async function createJourney() {
     const saved = await saveJourneyConfiguration(config.value)
     savedConfig.value = { project: saved.project, frontend: saved.frontend, backend: saved.backend, database: saved.database }
     completedStages.value = saved.completedStages
+    skippedStages.value = saved.skippedStages
     configured.value = true
     editing.value = false
   } catch (cause) {
@@ -170,6 +195,7 @@ onMounted(async () => {
     config.value = { project: journey.project, frontend: journey.frontend, backend: journey.backend, database: journey.database }
     savedConfig.value = journey.configured ? { ...config.value } : null
     completedStages.value = journey.completedStages
+    skippedStages.value = journey.skippedStages
     configured.value = journey.configured
     editing.value = !journey.configured
   } catch (cause) {
@@ -210,17 +236,17 @@ onMounted(async () => {
     </section>
 
     <template v-else>
-      <section class="journey-summary glass-card"><div class="journey-project-mark">{{ projectName.slice(0, 1) }}</div><div><span>我的第一个网站</span><h3>{{ projectName }}</h3><p>{{ stackSummary }}</p></div><div class="journey-progress"><span><b>{{ completedCount }}</b> / {{ stages.length }} 站</span><div><i :style="{ width: `${progressPercent}%` }"></i></div><small>{{ completedCount === stages.length ? '路线已全部完成' : `下一站：${nextStageTitle}` }}</small></div></section>
+      <section class="journey-summary glass-card"><div class="journey-project-mark">{{ projectName.slice(0, 1) }}</div><div><span>我的第一个网站</span><h3>{{ projectName }}</h3><p>{{ stackSummary }}</p></div><div class="journey-progress"><span><b>{{ resolvedCount }}</b> / {{ stages.length }} 站</span><div><i :style="{ width: `${progressPercent}%` }"></i></div><small>{{ resolvedCount === stages.length ? '路线已全部完成' : `下一站：${nextStageTitle}` }}<template v-if="skippedCount"> · 已跳过 {{ skippedCount }} 站</template></small></div></section>
 
       <section class="route-course-strip"><div><span>这条路线会用到</span><strong>{{ routeCourseTitles.length }} 门配套技术课</strong></div><div><template v-for="title in routeCourseTitles" :key="title"><RouterLink v-if="courseLink(title)" :to="courseLink(title) || '/knowledge'">{{ title }} <span>↗</span></RouterLink><span v-else>{{ title }}</span></template></div></section>
 
-      <div class="roadmap-header"><div><span>你的专属路线</span><h3>每到一站，网站就多一个新本领</h3></div><p>不需要先学完整本教材。做到哪一步，就学习哪一步需要的知识。</p></div>
+      <div class="roadmap-header"><div><span>你的专属路线</span><h3>每到一站，网站就多一个新本领</h3></div><p>做到哪一步，就学习哪一步需要的知识；已经掌握的阶段可以直接跳过，之后仍能回来补学。</p></div>
 
       <div class="journey-roadmap">
-        <article v-for="(stage, index) in stages" :key="stage.number" class="roadmap-stage glass-card" :class="{ current: index === currentIndex, completed: isStageCompleted(stage), locked: !isStageUnlocked(index) }">
-          <div class="stage-number">{{ isStageCompleted(stage) ? '✓' : stage.number }}<i></i></div>
-          <div class="stage-main"><div class="stage-label"><span>{{ isStageCompleted(stage) ? '这一站已完成' : index === currentIndex ? '现在从这里开始' : index === stages.length - 1 ? '最终作品' : '建站阶段' }}</span><em>{{ stage.time }}</em></div><h3>{{ stage.title }}</h3><p>{{ stage.subtitle }}</p><div class="stage-skills"><span v-for="skill in stage.skills" :key="skill">{{ skill }}</span></div><div class="stage-output"><small>完成后你将得到</small><strong>{{ stage.output }}</strong></div></div>
-          <RouterLink v-if="stage.route && isStageUnlocked(index)" class="stage-action" :to="stage.route">{{ stageActionLabel(stage, index) }} <span>→</span></RouterLink><button v-else class="stage-action locked" type="button" disabled>{{ isStageUnlocked(index) ? '正在匹配课程' : '完成上一站后开启' }}</button>
+        <article v-for="(stage, index) in stages" :key="stage.number" class="roadmap-stage glass-card" :class="{ current: index === currentIndex, completed: isStageCompleted(stage), skipped: isStageSkipped(stage), locked: !isStageUnlocked(index) }">
+          <div class="stage-number">{{ isStageCompleted(stage) ? '✓' : isStageSkipped(stage) ? '跳' : stage.number }}<i></i></div>
+          <div class="stage-main"><div class="stage-label"><span>{{ isStageCompleted(stage) ? '这一站已完成' : isStageSkipped(stage) ? '已跳过，随时可以回来补学' : index === currentIndex ? '现在从这里开始' : index === stages.length - 1 ? '最终作品' : '建站阶段' }}</span><em>{{ stage.time }}</em></div><h3>{{ stage.title }}</h3><p>{{ stage.subtitle }}</p><div class="stage-skills"><span v-for="skill in stage.skills" :key="skill">{{ skill }}</span></div><div class="stage-output"><small>完成后你将得到</small><strong>{{ stage.output }}</strong></div></div>
+          <div class="stage-actions"><RouterLink v-if="stage.route && isStageUnlocked(index)" class="stage-action" :to="stage.route">{{ stageActionLabel(stage, index) }} <span>→</span></RouterLink><button v-else class="stage-action locked" type="button" disabled>{{ isStageUnlocked(index) ? '正在匹配课程' : '完成上一站后开启' }}</button><button v-if="canSkipStage(stage, index)" class="stage-skip" type="button" :disabled="Boolean(skippingStage)" @click="skipStage(stage.id)">{{ skippingStage === stage.id ? '正在跳过…' : '我学过这项，跳过' }}</button></div>
         </article>
       </div>
     </template>

@@ -26,8 +26,25 @@ public final class CommunityDtos {
             String websiteUrl,
             String stackSummary,
             List<String> imageUrls,
+            int likeCount,
+            boolean likedByCurrentUser,
+            int commentCount,
+            List<CommunityCommentView> comments,
             Instant createdAt
     ) {
+    }
+
+    public record CommunityCommentView(
+            Long id,
+            Long authorId,
+            String authorName,
+            String authorRole,
+            String content,
+            Instant createdAt
+    ) {
+    }
+
+    public record CommunityLikeView(Long postId, int likeCount, boolean liked) {
     }
 
     public record CommunityImageView(String originalName, String contentType, byte[] data) {
@@ -38,6 +55,11 @@ public final class CommunityDtos {
             @NotBlank @Size(min = 4, max = 80, message = "标题需要 4 到 80 个字") String title,
             @NotBlank @Size(min = 10, max = 800, message = "分享内容需要 10 到 800 个字") String content,
             @Size(max = 400, message = "作品链接不能超过 400 个字符") String websiteUrl
+    ) {
+    }
+
+    public record CreateCommunityCommentRequest(
+            @NotBlank @Size(max = 300, message = "评论不能超过 300 个字") String content
     ) {
     }
 }
