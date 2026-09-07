@@ -26,6 +26,7 @@ const publishing = ref(false)
 const publishError = ref('')
 const publishedMessage = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
+const composerDialog = ref<HTMLDialogElement | null>(null)
 const selectedImages = ref<{ file: File; previewUrl: string }[]>([])
 const allowedImageTypes = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif'])
 const maxImageSize = 5 * 1024 * 1024
@@ -33,6 +34,17 @@ const maxImageSize = 5 * 1024 * 1024
 const canPublish = computed(() => title.value.trim().length >= 4
   && content.value.trim().length >= 10
   && (postType.value === 'JOURNEY' || websiteUrl.value.trim().length > 0))
+
+function openComposer() {
+  publishError.value = ''
+  publishedMessage.value = ''
+  composerDialog.value?.showModal()
+}
+
+function closeComposer(force = false) {
+  if (publishing.value && !force) return
+  composerDialog.value?.close()
+}
 
 async function loadPosts() {
   loading.value = true
@@ -71,6 +83,7 @@ async function publish() {
     clearSelectedImages()
     publishedMessage.value = '分享成功，大家现在可以看到你的记录了。'
     activeFilter.value = 'ALL'
+    closeComposer(true)
     await loadPosts()
   } catch (cause) {
     publishError.value = cause instanceof Error ? cause.message : '分享发布失败'
@@ -153,20 +166,25 @@ onBeforeUnmount(clearSelectedImages)
   <section class="community-page">
     <header class="journey-heading community-heading">
       <div><span class="eyebrow"><i></i> BUILD TOGETHER</span><h2>建站社区</h2><p>记录一次突破，展示一个小网站，也看看同学们怎样把想法做出来。</p></div>
-      <div class="community-rule"><span>社区约定</span><p>分享真实过程，说清做了什么、遇到什么问题，以及下一步准备做什么。</p></div>
+      <div class="community-heading-actions">
+        <div class="community-rule"><span>社区约定</span><p>分享真实过程，说清做了什么、遇到什么问题，以及下一步准备做什么。</p></div>
+        <button class="community-compose-trigger" type="button" @click="openComposer"><span>＋</span> 发表分享</button>
+      </div>
     </header>
 
-    <div class="community-layout">
-      <aside class="community-composer glass-card">
-        <span class="composer-kicker">写下这一步</span>
-        <h3>分享你的建站进展</h3>
+    <dialog ref="composerDialog" class="community-composer-dialog" aria-labelledby="community-composer-title" @cancel.prevent="closeComposer()" @click="event => { if (event.target === composerDialog) closeComposer() }">
+      <aside class="community-composer glass-card" @click.stop>
+        <header class="community-composer-header">
+          <div><span class="composer-kicker">写下这一步</span><h3 id="community-composer-title">分享你的建站进展</h3></div>
+          <button type="button" :disabled="publishing" aria-label="关闭发布窗口" @click="closeComposer()">×</button>
+        </header>
         <p>不必等网站完美。第一张页面、第一次解决报错，都值得记录。</p>
         <form @submit.prevent="publish">
           <div class="share-type-switch">
             <button type="button" :class="{ active: postType === 'JOURNEY' }" @click="postType = 'JOURNEY'; publishError = ''">建站历程</button>
             <button type="button" :class="{ active: postType === 'WEBSITE' }" @click="postType = 'WEBSITE'; publishError = ''">展示小网站</button>
           </div>
-          <label class="community-field"><span>标题</span><input v-model="title" maxlength="80" placeholder="例如：终于让按钮动起来了" /></label>
+          <label class="community-field"><span>标题</span><input v-model="title" maxlength="80" placeholder="例如：终于让按钮动起来了" autofocus /></label>
           <label class="community-field"><span>分享内容</span><textarea v-model="content" maxlength="800" placeholder="说说你做了什么、解决了什么问题……"></textarea><small>{{ content.length }} / 800</small></label>
           <label v-if="postType === 'WEBSITE'" class="community-field"><span>作品链接</span><input v-model="websiteUrl" type="url" maxlength="400" placeholder="https://你的网站地址" /></label>
           <div class="community-upload">
@@ -182,11 +200,14 @@ onBeforeUnmount(clearSelectedImages)
             </figure>
           </div>
           <p v-if="publishError" class="practice-error">{{ publishError }}</p>
-          <p v-if="publishedMessage" class="community-success">{{ publishedMessage }}</p>
           <button class="community-submit" type="submit" :disabled="!canPublish || publishing">{{ publishing ? '正在发布…' : '发布到社区 →' }}</button>
         </form>
       </aside>
+    </dialog>
 
+    <p v-if="publishedMessage" class="community-success community-publish-notice" role="status">{{ publishedMessage }}</p>
+
+    <div class="community-layout">
       <section class="community-feed">
         <header class="community-feed-header">
           <div><span>同学们的最新动态</span><strong>{{ posts.length }} 条分享</strong></div>
@@ -195,7 +216,7 @@ onBeforeUnmount(clearSelectedImages)
 
         <div v-if="loading" class="state-card glass-card"><span class="loader"></span><p>正在加载社区动态…</p></div>
         <div v-else-if="feedError" class="state-card glass-card"><strong>社区暂时没有连上</strong><p>{{ feedError }}</p><button type="button" @click="loadPosts">重新加载</button></div>
-        <div v-else-if="!posts.length" class="community-empty glass-card"><span>✦</span><h3>还没有人分享这一类内容</h3><p>把左边的第一条建站记录写下来吧。</p></div>
+        <div v-else-if="!posts.length" class="community-empty glass-card"><span>✦</span><h3>还没有人分享这一类内容</h3><p>点击“发表分享”，写下第一条建站记录吧。</p><button type="button" @click="openComposer">发表第一条分享</button></div>
         <div v-else class="community-posts">
           <article v-for="post in posts" :key="post.id" class="community-post glass-card">
             <header>
