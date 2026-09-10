@@ -27,6 +27,9 @@ public class JourneyStageProgress {
     @Column(length = 12)
     private String status = "COMPLETED";
 
+    @Column(length = 600)
+    private String evidence;
+
     @Column(nullable = false, updatable = false)
     private Instant completedAt = Instant.now();
 
@@ -43,5 +46,9 @@ public class JourneyStageProgress {
     public boolean isCompleted() { return status == null || status.equals("COMPLETED"); }
     public boolean isSkipped() { return status != null && status.equals("SKIPPED"); }
     public void markCompleted() { status = "COMPLETED"; }
+    public void markSkipped() { status = "SKIPPED"; }
+    public void invalidate() { status = "IN_PROGRESS"; evidence = null; }
+    public void saveEvidence(String evidence) { this.evidence = evidence; }
+    public String getEvidence() { return evidence; }
     public Instant getCompletedAt() { return completedAt; }
 }

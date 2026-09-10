@@ -147,6 +147,16 @@ public class CourseService {
                 percent(saved.getCompletedLessons(), totalLessons), saved.getLastStudiedAt());
     }
 
+    @Transactional(readOnly = true)
+    public boolean isCourseCompleted(Long userId, String courseTitle) {
+        Course course = courseRepository.findByTitle(courseTitle).orElse(null);
+        if (course == null || course.getChapters().isEmpty()) return false;
+        int completedLessons = progressRepository.findByUserIdAndCourseId(userId, course.getId())
+                .map(LearningProgress::getCompletedLessons)
+                .orElse(0);
+        return completedLessons >= course.getChapters().size();
+    }
+
     private CourseSummary toSummary(Course course, LearningProgress progress) {
         int completedLessons = completed(progress);
         int totalLessons = course.getChapters().size();

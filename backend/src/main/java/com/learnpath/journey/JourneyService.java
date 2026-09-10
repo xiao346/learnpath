@@ -1,12 +1,15 @@
 package com.learnpath.journey;
 
 import com.learnpath.cache.JsonCache;
+import com.learnpath.course.CourseService;
 import com.learnpath.journey.JourneyDtos.FirstPageView;
 import com.learnpath.journey.JourneyDtos.JourneyView;
 import com.learnpath.journey.JourneyDtos.SaveFirstPageRequest;
 import com.learnpath.journey.JourneyDtos.SaveJourneyRequest;
 import com.learnpath.journey.JourneyDtos.SaveDeploymentRequest;
 import com.learnpath.journey.JourneyDtos.SaveStyleRequest;
+import com.learnpath.journey.JourneyDtos.SaveStageEvidenceRequest;
+import com.learnpath.journey.JourneyDtos.StageEvidenceView;
 import com.learnpath.journey.JourneyDtos.StyleView;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,20 +34,23 @@ public class JourneyService {
     private final WebJourneyRepository journeyRepository;
     private final JourneyStageProgressRepository stageRepository;
     private final JsonCache cache;
+    private final CourseService courseService;
 
     public JourneyService(WebJourneyRepository journeyRepository,
                           JourneyStageProgressRepository stageRepository,
-                          JsonCache cache) {
+                          JsonCache cache,
+                          CourseService courseService) {
         this.journeyRepository = journeyRepository;
         this.stageRepository = stageRepository;
         this.cache = cache;
+        this.courseService = courseService;
     }
 
     @Transactional(readOnly = true)
     public JourneyView get(Long userId) {
         String key = cacheKey(userId);
         var cached = cache.get(key, JourneyView.class);
-        if (cached.isPresent() && cached.get().skippedStages() != null) return cached.get();
+        if (cached.isPresent() && cached.get().skippedStages() != null && cached.get().stageEvidence() != null) return cached.get();
         List<JourneyStageProgress> stageProgress = stageRepository.findByUserIdOrderByCompletedAtAsc(userId);
         JourneyView view = journeyRepository.findByUserId(userId)
                 .map(journey -> toView(journey, completedStageIds(stageProgress), skippedStageIds(stageProgress)))
@@ -63,6 +69,7 @@ public class JourneyService {
             throw new IllegalArgumentException("暂不使用后端时，数据库也应选择暂不使用");
         }
         WebJourney journey = findOrCreate(userId);
+        invalidateChangedRouteStages(userId, journey, request);
         journey.configure(request.project(), request.frontend(), request.backend(), request.database());
         journeyRepository.save(journey);
         return refresh(userId);
@@ -87,8 +94,25 @@ public class JourneyService {
     @Transactional
     public JourneyView saveDeployment(Long userId, SaveDeploymentRequest request) {
         WebJourney journey = findOrCreate(userId);
-        journey.updateDeploymentUrl(request.deploymentUrl().trim());
+        if (!journey.getBackendStack().equals("later") && (request.apiUrl() == null || request.apiUrl().isBlank())) {
+            throw new IllegalArgumentException("全栈路线还需要填写公开的后端接口地址");
+        }
+        journey.updateDeploymentUrl(request.deploymentUrl().trim(),
+                request.apiUrl() == null || request.apiUrl().isBlank() ? null : request.apiUrl().trim());
         journeyRepository.save(journey);
+        return refresh(userId);
+    }
+
+    @Transactional
+    public JourneyView saveStageEvidence(Long userId, String stageId, SaveStageEvidenceRequest request) {
+        WebJourney journey = findOrCreate(userId);
+        validateRequiredStage(journey, stageId);
+        ensurePreviousStagesResolved(userId, journey, stageId);
+        journeyRepository.save(journey);
+        JourneyStageProgress progress = stageRepository.findByUserIdAndStageId(userId, stageId)
+                .orElseGet(() -> new JourneyStageProgress(userId, stageId, "IN_PROGRESS"));
+        progress.saveEvidence(request.evidence().trim());
+        stageRepository.save(progress);
         return refresh(userId);
     }
 
@@ -96,12 +120,32 @@ public class JourneyService {
     public JourneyView completeStage(Long userId, String stageId) {
         validateChoice(STAGES, stageId, "建站阶段");
         WebJourney journey = findOrCreate(userId);
+        validateRequiredStage(journey, stageId);
         if ((stageId.equals("publish") || stageId.equals("launch"))
                 && (journey.getDeploymentUrl() == null || journey.getDeploymentUrl().isBlank())) {
             throw new IllegalArgumentException("请先在发布站保存可以访问的真实网站地址");
         }
+        if ((stageId.equals("publish") || stageId.equals("launch"))
+                && !journey.getBackendStack().equals("later")
+                && (journey.getApiUrl() == null || journey.getApiUrl().isBlank())) {
+            throw new IllegalArgumentException("全栈路线还需要保存公开的后端接口地址");
+        }
+        ensurePreviousStagesResolved(userId, journey, stageId);
+        String courseTitle = JourneyPlan.courseTitle(journey.getFrontendStack(), journey.getBackendStack(), stageId);
+        JourneyStageProgress existingProgress = stageRepository.findByUserIdAndStageId(userId, stageId).orElse(null);
+        if (courseTitle != null && !courseService.isCourseCompleted(userId, courseTitle)) {
+            throw new IllegalArgumentException("请先完成“" + courseTitle + "”课程，再把知识应用到项目");
+        }
+        if (courseTitle != null && (existingProgress == null || existingProgress.getEvidence() == null
+                || existingProgress.getEvidence().isBlank())) {
+            throw new IllegalArgumentException("请先记录这一站应用到项目的结果");
+        }
+        if (stageId.equals("launch") && (existingProgress == null || existingProgress.getEvidence() == null
+                || existingProgress.getEvidence().isBlank())) {
+            throw new IllegalArgumentException("请先记录一条真实访客反馈和完成的修改");
+        }
         journeyRepository.save(journey);
-        JourneyStageProgress progress = stageRepository.findByUserIdAndStageId(userId, stageId)
+        JourneyStageProgress progress = java.util.Optional.ofNullable(existingProgress)
                 .orElseGet(() -> new JourneyStageProgress(userId, stageId, "COMPLETED"));
         progress.markCompleted();
         stageRepository.save(progress);
@@ -116,9 +160,16 @@ public class JourneyService {
     public JourneyView skipStage(Long userId, String stageId) {
         validateChoice(SKIPPABLE_STAGES, stageId, "可跳过的建站阶段");
         WebJourney journey = findOrCreate(userId);
+        validateRequiredStage(journey, stageId);
+        ensurePreviousStagesResolved(userId, journey, stageId);
         journeyRepository.save(journey);
         JourneyStageProgress progress = stageRepository.findByUserIdAndStageId(userId, stageId).orElse(null);
-        if (progress == null) stageRepository.save(new JourneyStageProgress(userId, stageId, "SKIPPED"));
+        if (progress == null) {
+            stageRepository.save(new JourneyStageProgress(userId, stageId, "SKIPPED"));
+        } else {
+            progress.markSkipped();
+            stageRepository.save(progress);
+        }
         return refresh(userId);
     }
 
@@ -150,18 +201,63 @@ public class JourneyService {
     }
 
     private JourneyView toView(WebJourney journey, List<String> completedStages, List<String> skippedStages) {
+        List<StageEvidenceView> evidence = stageRepository.findByUserIdOrderByCompletedAtAsc(journey.getUserId()).stream()
+                .filter(progress -> progress.getEvidence() != null && !progress.getEvidence().isBlank())
+                .map(progress -> new StageEvidenceView(progress.getStageId(), progress.getEvidence()))
+                .toList();
         return new JourneyView(true, journey.getProjectType(), journey.getFrontendStack(), journey.getBackendStack(),
                 journey.getDatabaseType(),
                 new FirstPageView(journey.getPageName(), journey.getPageIntroduction(), journey.getPageInterest(), journey.getPageTheme()),
                 new StyleView(journey.getStyleAccent(), journey.getStyleRadius(), journey.getStyleSpacing(), journey.isStyleShadow()),
-                journey.getDeploymentUrl(),
-                completedStages, skippedStages, journey.getGraduatedAt(), journey.getUpdatedAt());
+                journey.getDeploymentUrl(), journey.getApiUrl(),
+                completedStages, skippedStages, evidence, journey.getGraduatedAt(), journey.getUpdatedAt());
     }
 
     private JourneyView emptyView(List<String> completedStages, List<String> skippedStages) {
         return new JourneyView(false, "portfolio", "vue", "java", "mysql",
                 new FirstPageView("小途", "一名正在探索 Web 世界的大一学生。", "我喜欢摄影、音乐，也喜欢把新点子做出来。", "blue"),
-                new StyleView("#5b72f2", 18, 24, true), null, completedStages, skippedStages, null, null);
+                new StyleView("#5b72f2", 18, 24, true), null, null, completedStages, skippedStages, List.of(), null, null);
+    }
+
+    private void validateRequiredStage(WebJourney journey, String stageId) {
+        if (!JourneyPlan.requiredStages(journey.getFrontendStack(), journey.getBackendStack(), journey.getDatabaseType()).contains(stageId)) {
+            throw new IllegalArgumentException("当前技术路线不包含这个建站阶段");
+        }
+    }
+
+    private void invalidateChangedRouteStages(Long userId, WebJourney journey, SaveJourneyRequest request) {
+        Set<String> invalidated;
+        if (!journey.getProjectType().equals(request.project())) {
+            invalidated = STAGES;
+        } else if (!journey.getFrontendStack().equals(request.frontend())) {
+            invalidated = Set.of("framework", "backend", "database", "publish", "launch");
+        } else if (!journey.getBackendStack().equals(request.backend())) {
+            invalidated = Set.of("backend", "database", "publish", "launch");
+        } else if (!journey.getDatabaseType().equals(request.database())) {
+            invalidated = Set.of("database", "publish", "launch");
+        } else {
+            return;
+        }
+        stageRepository.findByUserIdOrderByCompletedAtAsc(userId).stream()
+                .filter(progress -> invalidated.contains(progress.getStageId()))
+                .forEach(JourneyStageProgress::invalidate);
+        journey.invalidateRelease();
+    }
+
+    private void ensurePreviousStagesResolved(Long userId, WebJourney journey, String stageId) {
+        List<String> required = JourneyPlan.requiredStages(
+                journey.getFrontendStack(), journey.getBackendStack(), journey.getDatabaseType());
+        int stageIndex = required.indexOf(stageId);
+        if (stageIndex < 1) return;
+        Set<String> resolved = stageRepository.findByUserIdOrderByCompletedAtAsc(userId).stream()
+                .filter(progress -> progress.isCompleted() || progress.isSkipped())
+                .map(JourneyStageProgress::getStageId)
+                .collect(java.util.stream.Collectors.toSet());
+        for (String previous : required.subList(0, stageIndex)) {
+            if (!resolved.contains(previous)) {
+                throw new IllegalArgumentException("请先完成或跳过上一站，再继续当前阶段");
+            }
+        }
     }
 
     private void validateChoice(Set<String> allowed, String value, String label) {

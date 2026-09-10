@@ -5,6 +5,8 @@ import com.learnpath.community.CommunityDtos.CommunityPostView;
 import com.learnpath.community.CommunityDtos.CreateCommunityCommentRequest;
 import com.learnpath.community.CommunityDtos.CreateCommunityPostRequest;
 import com.learnpath.community.CommunityService;
+import com.learnpath.course.CourseRepository;
+import com.learnpath.course.CourseService;
 import com.learnpath.game.GameDtos.GameProgressView;
 import com.learnpath.game.GameService;
 import com.learnpath.journey.JourneyDtos.JourneyView;
@@ -12,6 +14,7 @@ import com.learnpath.journey.JourneyDtos.SaveFirstPageRequest;
 import com.learnpath.journey.JourneyDtos.SaveDeploymentRequest;
 import com.learnpath.journey.JourneyDtos.SaveJourneyRequest;
 import com.learnpath.journey.JourneyDtos.SaveStyleRequest;
+import com.learnpath.journey.JourneyDtos.SaveStageEvidenceRequest;
 import com.learnpath.journey.JourneyService;
 import com.learnpath.user.User;
 import com.learnpath.user.UserRepository;
@@ -35,6 +38,8 @@ class UserStatePersistenceTests {
     @Autowired private JourneyService journeyService;
     @Autowired private GameService gameService;
     @Autowired private CommunityService communityService;
+    @Autowired private CourseRepository courseRepository;
+    @Autowired private CourseService courseService;
 
     @Test
     void journeyConfigurationArtifactsAndStagesPersist() {
@@ -45,7 +50,7 @@ class UserStatePersistenceTests {
         assertThatThrownBy(() -> journeyService.completeStage(userId, "publish"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("真实网站地址");
-        journeyService.saveDeployment(userId, new SaveDeploymentRequest("https://example.com/my-blog"));
+        journeyService.saveDeployment(userId, new SaveDeploymentRequest("https://example.com/my-blog", "https://api.example.com"));
         journeyService.completeStage(userId, "intro");
         JourneyView view = journeyService.completeStage(userId, "intro");
         JourneyView skipped = journeyService.skipStage(userId, "style");
@@ -72,6 +77,41 @@ class UserStatePersistenceTests {
         assertThat(view.totalScore()).isEqualTo(100);
         assertThat(view.completedChallenges()).containsExactly("layout-0");
         assertThat(view.totalChallenges()).isEqualTo(21);
+    }
+
+    @Test
+    void technicalJourneyStageRequiresCourseAndProjectEvidence() {
+        Long userId = student().getId();
+        journeyService.saveConfiguration(userId, new SaveJourneyRequest("portfolio", "vue", "later", "later"));
+        journeyService.completeStage(userId, "intro");
+        journeyService.completeStage(userId, "style");
+        journeyService.completeStage(userId, "interaction");
+
+        assertThatThrownBy(() -> journeyService.completeStage(userId, "framework"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Vue 3 前端开发");
+
+        var course = courseRepository.findByTitle("Vue 3 前端开发").orElseThrow();
+        for (int completed = 1; completed <= course.getChapters().size(); completed++) {
+            courseService.updateProgress(userId, course.getId(), completed);
+        }
+        assertThatThrownBy(() -> journeyService.completeStage(userId, "framework"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("应用到项目");
+
+        journeyService.saveStageEvidence(userId, "framework", new SaveStageEvidenceRequest(
+                "我把作品列表拆成卡片组件，并通过新增第三条作品验证列表会自动更新。"));
+        JourneyView completed = journeyService.completeStage(userId, "framework");
+
+        assertThat(completed.completedStages()).contains("framework");
+        assertThat(completed.stageEvidence()).anyMatch(item -> item.stageId().equals("framework"));
+
+        journeyService.saveDeployment(userId, new SaveDeploymentRequest("https://example.com/portfolio", null));
+        JourneyView changedRoute = journeyService.saveConfiguration(userId,
+                new SaveJourneyRequest("portfolio", "vanilla", "later", "later"));
+        assertThat(changedRoute.completedStages()).doesNotContain("framework");
+        assertThat(changedRoute.stageEvidence()).noneMatch(item -> item.stageId().equals("framework"));
+        assertThat(changedRoute.deploymentUrl()).isNull();
     }
 
     @Test

@@ -13,6 +13,7 @@ import FirstWebsiteLessonView from '../views/FirstWebsiteLessonView.vue'
 import JourneyWorkshopView from '../views/JourneyWorkshopView.vue'
 import PublishWorkshopView from '../views/PublishWorkshopView.vue'
 import LaunchWorkshopView from '../views/LaunchWorkshopView.vue'
+import JourneyTechnicalStageView from '../views/JourneyTechnicalStageView.vue'
 import CommunityView from '../views/CommunityView.vue'
 
 const router = createRouter({
@@ -28,6 +29,7 @@ const router = createRouter({
       { path: 'courses/interaction-workshop', name: 'interaction-workshop', component: JourneyWorkshopView, props: { stage: 'interaction' } },
       { path: 'courses/publish-workshop', name: 'publish-workshop', component: PublishWorkshopView },
       { path: 'courses/launch-workshop', name: 'launch-workshop', component: LaunchWorkshopView },
+      { path: 'courses/project-stage/:stageId', name: 'journey-technical-stage', component: JourneyTechnicalStageView },
       { path: 'courses/:id', name: 'course-detail', component: CourseDetailView },
       { path: 'courses/:courseId/chapters/:chapterId', name: 'chapter-lesson', component: ChapterLessonView },
       { path: 'games', name: 'games', component: GamesView },

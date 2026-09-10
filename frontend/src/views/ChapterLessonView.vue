@@ -18,6 +18,13 @@ const error = ref('')
 const reviewConfirmed = ref(false)
 const practiceConfirmed = ref(false)
 const completionReady = computed(() => reviewConfirmed.value && practiceConfirmed.value)
+const journeyStage = computed(() => route.query.from === 'journey' ? String(route.query.stage ?? '') : '')
+const courseRoute = computed(() => journeyStage.value
+  ? { path: `/courses/${route.params.courseId}`, query: { from: 'journey', stage: journeyStage.value } }
+  : `/courses/${route.params.courseId}`)
+const chapterRoute = (chapterId: number) => journeyStage.value
+  ? { path: `/courses/${route.params.courseId}/chapters/${chapterId}`, query: { from: 'journey', stage: journeyStage.value } }
+  : `/courses/${route.params.courseId}/chapters/${chapterId}`
 const check = computed(() => lesson.value ? chapterChecks[lesson.value.chapterTitle] : undefined)
 const tutorial = computed(() => {
   if (!lesson.value) return undefined
@@ -51,7 +58,9 @@ async function completeLesson() {
       body: JSON.stringify({ completedLessons: lesson.value.orderIndex }),
     })
     if (lesson.value.nextChapterId) {
-      await router.push(`/courses/${lesson.value.courseId}/chapters/${lesson.value.nextChapterId}`)
+      await router.push(chapterRoute(lesson.value.nextChapterId))
+    } else if (journeyStage.value) {
+      await router.push(`/courses/project-stage/${journeyStage.value}`)
     } else {
       await loadLesson()
     }
@@ -63,7 +72,7 @@ async function completeLesson() {
 }
 
 function goToChapter(chapterId: number | null) {
-  if (chapterId && lesson.value) router.push(`/courses/${lesson.value.courseId}/chapters/${chapterId}`)
+  if (chapterId && lesson.value) router.push(chapterRoute(chapterId))
 }
 
 onMounted(loadLesson)
@@ -72,7 +81,7 @@ watch(() => route.params.chapterId, loadLesson)
 
 <template>
   <section class="lesson-page" :class="{ 'has-tutorial': tutorial }">
-    <RouterLink class="back-link" :to="`/courses/${route.params.courseId}`">← 返回知识目录</RouterLink>
+    <RouterLink class="back-link" :to="courseRoute">← {{ journeyStage ? '返回本阶段课程' : '返回知识目录' }}</RouterLink>
     <div v-if="loading" class="state-card glass-card"><span class="loader"></span><p>正在打开章节正文…</p></div>
     <div v-else-if="error && !lesson" class="state-card glass-card"><strong>章节暂时无法打开</strong><p>{{ error }}</p><button @click="loadLesson">重新加载</button></div>
     <template v-else-if="lesson">

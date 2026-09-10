@@ -7,6 +7,7 @@ import com.learnpath.journey.JourneyDtos.SaveFirstPageRequest;
 import com.learnpath.journey.JourneyDtos.SaveJourneyRequest;
 import com.learnpath.journey.JourneyDtos.SaveDeploymentRequest;
 import com.learnpath.journey.JourneyDtos.SaveStyleRequest;
+import com.learnpath.journey.JourneyDtos.SaveStageEvidenceRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -63,6 +64,15 @@ public class JourneyController {
     public ApiResponse<JourneyView> complete(@RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
                                              @PathVariable String stageId) {
         return ApiResponse.ok("建站阶段已完成", journeyService.completeStage(userId(authorization), stageId));
+    }
+
+    @PutMapping("/stages/{stageId}/evidence")
+    public ApiResponse<JourneyView> saveStageEvidence(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+            @PathVariable String stageId,
+            @Valid @RequestBody SaveStageEvidenceRequest request) {
+        return ApiResponse.ok("项目阶段记录已保存",
+                journeyService.saveStageEvidence(userId(authorization), stageId, request));
     }
 
     @PostMapping("/stages/{stageId}/skip")

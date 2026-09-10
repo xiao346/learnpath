@@ -2,8 +2,10 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { api, type CourseSummary } from '../services/api'
 import { defaultJourney, loadJourney, saveJourneyConfiguration, skipJourneyStage, type JourneyConfig, type JourneyStageId } from '../services/journey'
+import { buildJourneyPlan } from '../content/journeyPlan'
 
 type Choice = { id: string; name: string; note: string; badge?: string }
+type StageTask = { title: string; detail: string }
 type RoadmapStage = {
   id: JourneyStageId
   number: string
@@ -15,6 +17,7 @@ type RoadmapStage = {
   skipHint: string
   time: string
   skills: string[]
+  tasks: StageTask[]
   route: string | null
   course: string | null
 }
@@ -207,6 +210,7 @@ const routeCourseTitles = computed(() => [
 
 const stages = computed(() => {
   const siteLabel = projectName.value
+  const contentLabel = config.value.project === 'blog' ? '文章' : config.value.project === 'campus' ? '活动' : '作品'
   const frontendFramework = config.value.frontend === 'vue' ? 'Vue 组件与状态' : 'JavaScript 页面交互'
   const backendLabel = config.value.backend === 'python' ? 'Python 接口' : 'Spring Boot 接口'
   const databaseLabel = config.value.database === 'sqlite' ? 'SQLite' : 'MySQL'
@@ -221,27 +225,63 @@ const stages = computed(() => {
       number: String(items.length + 1).padStart(2, '0'),
     })
   }
-  addStage({ id: 'intro', title: '你好，这是我的网站', subtitle: `把名字和兴趣放进${siteLabel}`, output: '浏览器中出现属于你的首页', time: '25 分钟', skills: ['HTML 结构', '文字与图片'], route: '/courses/first-page', course: null })
-  addStage({ id: 'style', title: '给网站换件衣服', subtitle: '用颜色、字体和留白做出自己的风格', output: '完成一套个人视觉主题', time: '45 分钟', skills: ['CSS', '盒模型', 'Flex 布局'], route: '/courses/style-workshop', course: null })
-  addStage({ id: 'interaction', title: '让按钮真的有反应', subtitle: `用${frontendFramework}做导航、卡片和主题切换`, output: '页面可以响应点击与输入', time: '1.5 小时', skills: ['变量与函数', '事件', '状态'], route: '/courses/interaction-workshop', course: null })
+  addStage({ id: 'intro', title: '你好，这是我的网站', subtitle: `把名字和兴趣放进${siteLabel}`, output: '浏览器中出现属于你的首页', time: '约 60 分钟', skills: ['HTML 结构', '语义标签', '文字与链接'], tasks: [
+    { title: '规划首页内容', detail: `确定站点名称、一句话介绍和第一条真实${contentLabel}。` },
+    { title: '搭出 HTML 结构', detail: `用 h1、p、section 和 article 组织${siteLabel}首页。` },
+    { title: '在浏览器验证', detail: '保存 index.html，刷新页面，并确认修改后的内容真实出现。' },
+  ], route: '/courses/first-page', course: null })
+  addStage({ id: 'style', title: '给网站换件衣服', subtitle: '用颜色、字体和留白做出自己的风格', output: '完成一套个人视觉主题', time: '约 90 分钟', skills: ['CSS 层叠', '盒模型', 'Flex 布局', '响应式'], tasks: [
+    { title: '拉开阅读层级', detail: `分别设置${contentLabel}标题、摘要和正文的字号、颜色与行高。` },
+    { title: '设计卡片布局', detail: '用 padding、gap、圆角和 Flex 排好内容与操作按钮。' },
+    { title: '检查手机宽度', detail: '切到 375px 预览，修正文字溢出和横向滚动。' },
+  ], route: '/courses/style-workshop', course: null })
+  addStage({ id: 'interaction', title: '让按钮真的有反应', subtitle: `用${frontendFramework}完成筛选、收藏和详情展开`, output: '页面可以响应点击与输入', time: '约 2 小时', skills: ['DOM', '事件', '状态', '交互反馈'], tasks: [
+    { title: '定义交互规则', detail: `写清访客点击前后，${contentLabel}列表或详情应该发生什么变化。` },
+    { title: '连接事件与状态', detail: '选择按钮、监听 click，并根据状态更新文字、样式或内容。' },
+    { title: '测试重复操作', detail: '连续点击、切换和收起，确认页面状态始终正确且有反馈。' },
+  ], route: '/courses/interaction-workshop', course: null })
   if (config.value.frontend === 'vue') {
-    addStage({ id: 'framework', title: '把页面装进 Vue', subtitle: '用组件和响应式数据重新组织不断长大的页面', output: '一个结构清楚的 Vue 单页应用', time: '4 个短任务', skills: ['Vue 3', '组件', '列表渲染'], route: courseLink('Vue 3 前端开发'), course: 'Vue 3 前端开发' })
+    addStage({ id: 'framework', title: '把页面装进 Vue', subtitle: '用组件和响应式数据重新组织不断长大的页面', output: '一个结构清楚的 Vue 单页应用', time: '5 个章节', skills: ['Vue 3', '组件', 'Props', '列表渲染'], tasks: [
+      { title: '划分页面组件', detail: `把导航、${contentLabel}卡片和页脚拆成职责单一的组件。` },
+      { title: '用数据生成内容', detail: `把多条${contentLabel}放进数组，通过 v-for 渲染并传入 Props。` },
+      { title: '整理状态与结构', detail: `新增一条${contentLabel}数据，确认列表自动更新且组件无需复制。` },
+    ], route: '/courses/project-stage/framework', course: 'Vue 3 前端开发' })
   }
-  addStage({ id: 'publish', title: '先发给朋友看看', subtitle: '保存代码、完成构建，把成果发布成可访问的网站', output: '获得第一个可分享的网站地址', time: '45 分钟', skills: ['Git', '构建', '静态部署'], route: '/courses/publish-workshop', course: null })
+  addStage({ id: 'publish', title: '把完整版本发给朋友', subtitle: config.value.backend === 'later' ? '保存代码、完成构建，把页面发布成可访问的网站' : `发布页面与${backendLabel}，在公开环境完成前后端联调`, output: config.value.backend === 'later' ? '获得第一个可分享的网站地址' : '获得可访问的网站与 API 地址', time: '约 60–90 分钟', skills: config.value.backend === 'later' ? ['Git', '构建', '静态部署', '线上验证'] : ['Git', '生产构建', '服务部署', '环境变量', '线上联调'], tasks: [
+    { title: '保存可靠版本', detail: '检查文件并创建一次 Git 提交，给当前可运行版本留下记录。' },
+    { title: config.value.backend === 'later' ? '生成上线文件' : '部署服务与数据', detail: config.value.backend === 'later' ? (config.value.frontend === 'vue' ? '执行生产构建，读懂输出并确认 dist 文件夹生成。' : '检查 index.html 入口和图片、样式、脚本的相对路径。') : `部署${backendLabel}${config.value.database === 'later' ? '' : `与 ${databaseLabel}`}，确认公开健康接口可以访问。` },
+    { title: config.value.backend === 'later' ? '发布并异地验证' : '发布页面并联调', detail: config.value.backend === 'later' ? '上传网站，用手机或无痕窗口打开公开网址并检查主要页面。' : '配置生产 API 地址，重新构建前端，在无痕窗口走通一次页面—接口—数据流程。' },
+  ], route: '/courses/publish-workshop', course: null })
   if (config.value.backend !== 'later') {
-    addStage({ id: 'backend', title: '给网站接上大脑', subtitle: `用${backendLabel}接收页面请求`, output: '前端成功读取自己的接口', time: '4 个短任务', skills: ['HTTP', 'REST API', '调试'], route: config.value.backend === 'java' ? courseLink('Java Web 应用开发') : courseLink('FastAPI 后端开发'), course: config.value.backend === 'java' ? 'Java Web 应用开发' : 'FastAPI 后端开发' })
+    addStage({ id: 'backend', title: '给网站接上大脑', subtitle: `用${backendLabel}接收页面请求`, output: '前端成功读取自己的接口', time: '5 个章节', skills: ['HTTP', 'REST API', 'JSON', '异常处理'], tasks: [
+      { title: '先约定接口', detail: `确定 GET /api/${contentLabel} 要接收什么、返回哪些 JSON 字段。` },
+      { title: '实现并测试接口', detail: `用${backendLabel}返回两条真实数据，再检查状态码和响应内容。` },
+      { title: '连接前端页面', detail: '用 fetch 请求接口，并补上加载中、成功和失败三种界面状态。' },
+    ], route: '/courses/project-stage/backend', course: config.value.backend === 'java' ? 'Java Web 应用开发' : 'FastAPI 后端开发' })
     if (config.value.database !== 'later') {
-      addStage({ id: 'database', title: '让内容记得住', subtitle: `把文章和作品保存到 ${databaseLabel}`, output: '刷新页面后数据依然存在', time: '3 个短任务', skills: ['数据表', 'SQL', '数据持久化'], route: courseLink('数据库原理'), course: '数据库原理' })
+      addStage({ id: 'database', title: '让内容记得住', subtitle: `把文章和作品保存到 ${databaseLabel}`, output: '刷新页面后数据依然存在', time: '5 个章节', skills: ['表设计', 'SQL', 'CRUD', '数据持久化'], tasks: [
+        { title: '设计内容表', detail: `为${contentLabel}确定主键、标题、正文和创建时间等字段。` },
+        { title: '完成读写闭环', detail: `插入一条${contentLabel}，再通过查询接口把它显示到页面。` },
+        { title: '验证真的保存', detail: '刷新页面并重启后端，确认刚才的数据仍能读取。' },
+      ], route: '/courses/project-stage/database', course: '数据库原理' })
     }
   }
-  addStage({ id: 'launch', title: '上线前的最后巡检', subtitle: launchDescription(config.value.backend), output: `完成可以展示的${siteLabel}`, time: '1.5 小时', skills: ['质量检查', '移动端', '交付说明'], route: '/courses/launch-workshop', course: null })
-  return items
+  addStage({ id: 'launch', title: '上线前的最后巡检', subtitle: launchDescription(config.value.backend), output: `完成可以展示的${siteLabel}`, time: '约 1.5 小时', skills: ['质量检查', '移动端', '可访问性', '交付说明'], tasks: [
+    { title: '跑完项目体检', detail: '逐项检查构建、内容、手机布局、键盘操作和全部链接。' },
+    { title: '验证真实环境', detail: config.value.backend !== 'later' ? '从公开页面走通接口与数据流程，记录并修复失败项。' : '用无痕窗口重新访问，确认资源和交互都能正常加载。' },
+    { title: '完成作品说明', detail: '用三句话介绍网站主题、技术路线和一个自己解决的问题。' },
+  ], route: '/courses/launch-workshop', course: null })
+  const centralPlan = buildJourneyPlan(config.value)
+  return centralPlan.map((planStep, index) => ({
+    ...items.find((stage) => stage.id === planStep.id)!,
+    title: planStep.title,
+    time: planStep.time,
+    route: planStep.route,
+    course: planStep.courseTitle ?? null,
+    number: String(index + 1).padStart(2, '0'),
+  }))
 })
-const isStageCompleted = (stage: { id: JourneyStageId; course?: string | null }) => {
-  if (completedStages.value.includes(stage.id)) return true
-  if (!stage.course) return false
-  return courses.value.find((course) => course.title === stage.course)?.progressPercent === 100
-}
+const isStageCompleted = (stage: { id: JourneyStageId }) => completedStages.value.includes(stage.id)
 const isStageSkipped = (stage: { id: JourneyStageId }) => skippedStages.value.includes(stage.id) && !isStageCompleted(stage)
 const isStageResolved = (stage: { id: JourneyStageId; course?: string | null }) => isStageCompleted(stage) || isStageSkipped(stage)
 const skippedCount = computed(() => stages.value.filter(isStageSkipped).length)
@@ -253,12 +293,12 @@ const currentIndex = computed(() => {
 const progressPercent = computed(() => Math.round(resolvedCount.value / Math.max(stages.value.length, 1) * 100))
 const nextStageTitle = computed(() => stages.value[currentIndex.value]?.title ?? '全部完成')
 
-const isStageUnlocked = (index: number) => index <= currentIndex.value
+const isStageUnlocked = (index: number) => index <= currentIndex.value || Boolean(stages.value[index] && isStageResolved(stages.value[index]))
 const stageActionLabel = (stage: { id: JourneyStageId; course: string | null }, index: number) => {
   if (isStageSkipped(stage)) return stage.course ? `补学 ${stage.course}` : '重新学习这一站'
   if (isStageCompleted(stage)) return stage.course ? `复习 ${stage.course}` : '再次练习'
-  if (index === currentIndex.value) return stage.course ? `学习 ${stage.course}` : index === 0 ? '开始第一站' : '进入这一站'
-  return stage.course ? `学习 ${stage.course}` : '进入这一站'
+  if (index === currentIndex.value) return stage.course ? '学习课程并应用到项目' : index === 0 ? '开始第一站' : '进入这一站'
+  return stage.course ? '进入项目实做' : '进入这一站'
 }
 const canSkipStage = (stage: { id: JourneyStageId }, index: number) => index === currentIndex.value
   && stage.id !== 'launch'
@@ -392,7 +432,7 @@ onBeforeUnmount(() => {
 
       <section class="selected-tech-guide"><div class="choice-title"><b>3</b><div><h4>确认每件工具的工作</h4><p>生成路线前，只需要确认它们是否符合你想做的成果。</p></div></div><div><article v-for="item in selectedTechnologyGuide" :key="item.name"><span>{{ item.role }}</span><h4>{{ item.name }}</h4><p>{{ item.detail }}</p></article></div></section>
 
-      <p v-if="journeyError" class="practice-error">{{ journeyError }}</p><footer class="builder-footer"><div><small>你的路线</small><strong>{{ projectName }}</strong><span>{{ stackSummary }}</span></div><div><button v-if="configured" class="ghost-button" type="button" @click="cancelEditing">取消</button><button class="primary-journey-button" type="button" :disabled="savingJourney" @click="createJourney">{{ savingJourney ? '正在保存到数据库…' : '生成我的建站之旅 →' }}</button></div></footer>
+      <p v-if="configured" class="route-change-impact">路线调整说明：更换项目方向后，全部阶段需要重新验收；更换前端、后端或数据库时，只重新验收受影响的技术阶段及后续发布。</p><p v-if="journeyError" class="practice-error">{{ journeyError }}</p><footer class="builder-footer"><div><small>你的路线</small><strong>{{ projectName }}</strong><span>{{ stackSummary }}</span></div><div><button v-if="configured" class="ghost-button" type="button" @click="cancelEditing">取消</button><button class="primary-journey-button" type="button" :disabled="savingJourney" @click="createJourney">{{ savingJourney ? '正在保存到数据库…' : '生成我的建站之旅 →' }}</button></div></footer>
     </section>
 
     <template v-else>
@@ -405,7 +445,7 @@ onBeforeUnmount(() => {
       <div class="journey-roadmap">
         <article v-for="(stage, index) in stages" :key="stage.number" class="roadmap-stage glass-card" :class="{ current: index === currentIndex, completed: isStageCompleted(stage), skipped: isStageSkipped(stage), locked: !isStageUnlocked(index) }">
           <div class="stage-number">{{ isStageCompleted(stage) ? '✓' : isStageSkipped(stage) ? '跳' : stage.number }}<i></i></div>
-          <div class="stage-main"><div class="stage-label"><span>{{ isStageCompleted(stage) ? '这一站已完成' : isStageSkipped(stage) ? '已跳过，随时可以回来补学' : index === currentIndex ? '现在从这里开始' : index === stages.length - 1 ? '最终作品' : '建站阶段' }}</span><em>{{ stage.time }}</em></div><h3>{{ stage.title }}</h3><p>{{ stage.mission }}</p><div class="stage-skills"><span v-for="skill in stage.skills" :key="skill">{{ skill }}</span></div><details class="stage-learning-plan" :open="index === currentIndex"><summary>这一站怎么学</summary><ol><li><i>1</i><span><b>看效果</b><small>先知道要给网站增加什么</small></span></li><li><i>2</i><span><b>懂一点</b><small>只学完成任务需要的知识</small></span></li><li><i>3</i><span><b>跟着做</b><small>{{ stage.mission }}</small></span></li><li><i>4</i><span><b>自己试</b><small>换一份内容，独立完成相同功能</small></span></li><li><i>5</i><span><b>对照检查</b><small>{{ stage.proof }}</small></span></li></ol></details><div class="stage-output"><small>通过标准</small><strong>{{ stage.proof }}</strong></div></div>
+          <div class="stage-main"><div class="stage-label"><span>{{ isStageCompleted(stage) ? '这一站已完成' : isStageSkipped(stage) ? '已跳过，随时可以回来补学' : index === currentIndex ? '现在从这里开始' : index === stages.length - 1 ? '最终作品' : '建站阶段' }}</span><em>{{ stage.time }}</em></div><h3>{{ stage.title }}</h3><p>{{ stage.mission }}</p><div class="stage-skills"><span v-for="skill in stage.skills" :key="skill">{{ skill }}</span></div><details class="stage-learning-plan" :open="index === currentIndex"><summary><span>本阶段的 3 个动手任务</span><small>{{ isStageResolved(stage) ? '可随时回来复习' : '按顺序完成，最后用作品验收' }}</small></summary><ol><li v-for="(task, taskIndex) in stage.tasks" :key="task.title"><i>{{ taskIndex + 1 }}</i><span><b>{{ task.title }}</b><small>{{ task.detail }}</small></span></li></ol><div class="stage-plan-proof"><span>交付结果</span><strong>{{ stage.proof }}</strong></div></details></div>
           <div class="stage-actions"><RouterLink v-if="stage.route && isStageUnlocked(index)" class="stage-action" :to="stage.route">{{ stageActionLabel(stage, index) }} <span>→</span></RouterLink><button v-else class="stage-action locked" type="button" disabled>{{ isStageUnlocked(index) ? '正在匹配课程' : '完成上一站后开启' }}</button><template v-if="canSkipStage(stage, index)"><p class="stage-skip-hint">满足下面能力就能跳过：<br />{{ stage.skipHint }}</p><button class="stage-skip" type="button" :disabled="Boolean(skippingStage)" @click="skipStage(stage.id)">{{ skippingStage === stage.id ? '正在跳过…' : '我已经会了，跳过' }}</button></template></div>
         </article>
       </div>

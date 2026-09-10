@@ -4,14 +4,17 @@ export type JourneyStageId = 'intro' | 'style' | 'interaction' | 'framework' | '
 export type JourneyConfig = { project: string; frontend: string; backend: string; database: string }
 export type FirstPageData = { name: string; introduction: string; interest: string; theme: 'blue' | 'orange' | 'green' }
 export type StyleData = { accent: string; radius: number; spacing: number; shadow: boolean }
+export type StageEvidence = { stageId: JourneyStageId; evidence: string }
 
 export type JourneyData = JourneyConfig & {
   configured: boolean
   firstPage: FirstPageData
   style: StyleData
   deploymentUrl: string | null
+  apiUrl: string | null
   completedStages: JourneyStageId[]
   skippedStages: JourneyStageId[]
+  stageEvidence: StageEvidence[]
   graduatedAt: string | null
   updatedAt: string | null
 }
@@ -30,8 +33,10 @@ export const defaultJourney: JourneyData = {
   },
   style: { accent: '#5b72f2', radius: 18, spacing: 24, shadow: true },
   deploymentUrl: null,
+  apiUrl: null,
   completedStages: [],
   skippedStages: [],
+  stageEvidence: [],
   graduatedAt: null,
   updatedAt: null,
 }
@@ -40,7 +45,7 @@ const legacyKeys = ['learnpath_web_journey', 'learnpath_first_page', 'learnpath_
 
 export async function loadJourney() {
   let journey = await api<JourneyData>('/api/journey')
-  journey = { ...journey, skippedStages: journey.skippedStages ?? [], deploymentUrl: journey.deploymentUrl ?? null }
+  journey = { ...journey, skippedStages: journey.skippedStages ?? [], stageEvidence: journey.stageEvidence ?? [], deploymentUrl: journey.deploymentUrl ?? null, apiUrl: journey.apiUrl ?? null }
   const hasLegacyData = legacyKeys.some((key) => localStorage.getItem(key) !== null)
   if (!hasLegacyData) return journey
   if (journey.configured) {
@@ -56,7 +61,18 @@ export async function loadJourney() {
     if (configuration) journey = await saveJourneyConfiguration(configuration)
     if (firstPage) journey = await saveJourneyFirstPage(firstPage)
     if (style) journey = await saveJourneyStyle(style)
-    for (const stage of stages) journey = await completeJourneyStage(stage)
+    const orderedStages: JourneyStageId[] = ['intro', 'style', 'interaction']
+    if (journey.frontend === 'vue') orderedStages.push('framework')
+    if (journey.backend !== 'later') {
+      orderedStages.push('backend')
+      if (journey.database !== 'later') orderedStages.push('database')
+    }
+    orderedStages.push('publish')
+    for (const stage of orderedStages.filter((item) => stages.includes(item))) {
+      journey = ['framework', 'backend', 'database', 'publish'].includes(stage)
+        ? await skipJourneyStage(stage)
+        : await completeJourneyStage(stage)
+    }
     legacyKeys.forEach((key) => localStorage.removeItem(key))
   } catch {
     // Keep legacy values for the next retry if MySQL or Redis is temporarily unavailable.
@@ -86,9 +102,14 @@ export const saveJourneyStyle = (style: StyleData) => api<JourneyData>('/api/jou
   body: JSON.stringify(style),
 })
 
-export const saveJourneyDeployment = (deploymentUrl: string) => api<JourneyData>('/api/journey/deployment', {
+export const saveJourneyDeployment = (deploymentUrl: string, apiUrl: string | null = null) => api<JourneyData>('/api/journey/deployment', {
   method: 'PUT',
-  body: JSON.stringify({ deploymentUrl }),
+  body: JSON.stringify({ deploymentUrl, apiUrl }),
+})
+
+export const saveJourneyStageEvidence = (stage: JourneyStageId, evidence: string) => api<JourneyData>(`/api/journey/stages/${stage}/evidence`, {
+  method: 'PUT',
+  body: JSON.stringify({ evidence }),
 })
 
 export const completeJourneyStage = (stage: JourneyStageId) => api<JourneyData>(`/api/journey/stages/${stage}/complete`, {

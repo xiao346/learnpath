@@ -23,8 +23,10 @@ public final class JourneyDtos {
             FirstPageView firstPage,
             StyleView style,
             String deploymentUrl,
+            String apiUrl,
             List<String> completedStages,
             List<String> skippedStages,
+            List<StageEvidenceView> stageEvidence,
             Instant graduatedAt,
             Instant updatedAt
     ) {
@@ -34,6 +36,9 @@ public final class JourneyDtos {
     }
 
     public record StyleView(String accent, int radius, int spacing, boolean shadow) {
+    }
+
+    public record StageEvidenceView(String stageId, String evidence) {
     }
 
     public record SaveJourneyRequest(
@@ -61,7 +66,13 @@ public final class JourneyDtos {
     }
 
     public record SaveDeploymentRequest(
-            @NotBlank @Size(max = 500) @Pattern(regexp = "https?://.+", message = "请输入以 http:// 或 https:// 开头的网址") String deploymentUrl
+            @NotBlank @Size(max = 500) @Pattern(regexp = "https?://.+", message = "请输入以 http:// 或 https:// 开头的网址") String deploymentUrl,
+            @Size(max = 500) @Pattern(regexp = "https?://.+", message = "接口地址需要以 http:// 或 https:// 开头") String apiUrl
+    ) {
+    }
+
+    public record SaveStageEvidenceRequest(
+            @NotBlank @Size(min = 20, max = 600) String evidence
     ) {
     }
 }

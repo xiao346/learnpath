@@ -1,23 +1,69 @@
 # 知途 LearnPath
 
-面向大一计算机学生的项目式学习平台毕业设计，围绕“做出属于自己的第一个网站”组织学习。当前版本包含技术栈入门说明、个性化建站路线、12 门课程、83 个深度教学章节、60 项配套资源、96 道在线练习题、互动课程、21 个趣味小挑战、建站社区、项目上线检查与可持久化学习进度，并提供以 MySQL 为数据源、Redis 为缓存与会话层的 Java API。每个章节都按“原理拆解—完整推演—图解过程—具体例子—常见误区—自测与实践”组织，不再只展示知识点摘要。
+面向大一计算机学生的项目式学习平台毕业设计，围绕“做出属于自己的第一个网站”组织学习。平台把课程知识持续应用到同一个网站项目中，学生需要完成页面、交互、可选的前后端与数据库、真实发布和访客验收，最终得到一份能够公开展示的作品。
 
-学生可以先通过动画理解浏览器、前端、后端和数据库如何合作，再按学习目标接受推荐路线或自行选择技术。个人作品集、兴趣博客和校园信息站会生成不同的阶段任务；每一站都按“看效果—懂一点—跟着做—自己试—对照检查”推进，并支持跳过已经掌握的内容。
+当前版本包含 12 门课程、83 个深度教学章节、60 项配套资源、96 道在线练习题、21 个趣味挑战、建站社区和可持久化学习进度。章节按“原理拆解—完整推演—图解过程—具体例子—常见误区—自测与实践”组织；建站阶段按“学习—应用—验证—记录”形成项目闭环。
+
+## 核心建站流程
+
+每条路线都从网页基础开始，按依赖顺序逐步开放：
+
+```text
+HTML 首页 → CSS 造型 → JavaScript 交互
+          → [Vue 组件化]
+          → [Spring Boot / FastAPI 接口]
+          → [MySQL / SQLite 持久化]
+          → 真实发布 → 上线验收
+```
+
+方括号中的阶段会根据技术选择自动加入或省略。发布始终排在所有开发阶段之后，确保学生发布的是完整版本。
+
+| 阶段 | 项目成果 | 完成要求 |
+|---|---|---|
+| HTML 首页 | 站点介绍与第一条真实内容 | 内容在浏览器中正确出现 |
+| CSS 造型 | 清楚的内容层级、卡片与手机布局 | 完成样式实验并写回项目 |
+| JavaScript 交互 | 筛选、收藏与详情展开 | 验证重复操作和边界情况 |
+| Vue 组件化 | 数据驱动的作品、文章或活动列表 | 完成 Vue 课程、项目实做和证据记录 |
+| 后端接口 | 项目专属 REST API 与前端三种请求状态 | 完成对应后端课程、联调和证据记录 |
+| 数据持久化 | 与项目内容匹配的数据表和 CRUD 链路 | 完成数据库课程与重启验证 |
+| 真实发布 | 可公开访问的网站；全栈路线还需公开 API | 异地打开并走通核心流程 |
+| 上线验收 | 访客反馈、修订记录与交付报告 | 全部检查通过后完成建站之旅 |
+
+### 42 条有效路线
+
+- 项目方向：个人作品集、兴趣博客、校园信息站
+- 前端：原生 HTML/CSS/JavaScript 或 Vue 3
+- 后端：暂不使用、Spring Boot 或 FastAPI
+- 数据库：后端启用后可选择暂不使用、MySQL 或 SQLite
+
+暂不使用后端时数据库会自动关闭，因此共有 `3 × 2 × (1 + 2 × 3) = 42` 条有效路线。三个项目方向分别使用作品、文章和活动作为贯穿各站的数据模型，任务、接口、表结构与最终验收会随项目变化。
+
+### 进度与验收规则
+
+- 普通课程达到 100% 只代表知识准备完成，不会直接完成项目阶段。
+- Vue、后端和数据库阶段还需要在同一个网站中完成实做、测试边界情况，并提交不少于 20 字的项目证据。
+- 已掌握的阶段可以按顺序跳过，最终上线验收不能跳过。
+- 更换项目方向会重新验收全部阶段；更换技术时会重新验收受影响阶段及其后的发布流程。
+- 路线变化后，旧项目证据、公开地址和毕业状态会随受影响阶段失效，避免沿用不匹配的成果。
+- 全栈路线发布时必须同时保存网站地址和公开 API 健康检查地址；最终站会实际请求该接口。
 
 ## 项目结构
 
 ```text
 study/
-├── frontend/       Vue 3 + TypeScript + Vite + Vue Router + Pinia
-├── backend/        Java 21 + Spring Boot + Spring Data JPA + Redis
-└── compose.yaml    MySQL 与 Redis 本地环境
+├── frontend/                       Vue 3 + TypeScript + Vite + Vue Router + Pinia
+│   └── src/content/journeyPlan.ts  前端路线生成规则
+├── backend/                        Java 21 + Spring Boot + Spring Data JPA + Redis
+│   └── .../journey/JourneyPlan.java 后端阶段依赖与课程映射
+├── scripts/                        MySQL、Redis 与内容维护脚本
+└── compose.yaml                    MySQL 与 Redis 本地环境
 ```
 
 ## 本地运行
 
-1. 启动 MySQL 和 Redis：有 Docker 时执行 `docker compose up -d`；当前 Windows 环境可使用系统 MySQL 服务，并执行 `./scripts/start-redis.ps1` 启动项目本地 Redis 兼容服务
-2. 启动后端：进入 `backend` 后执行 `./mvnw spring-boot:run`
-3. 启动前端：进入 `frontend` 后执行 `npm run dev`
+1. 启动 MySQL 和 Redis：有 Docker 时执行 `docker compose up -d`；Windows 也可使用系统 MySQL 服务，并执行 `.\scripts\start-redis.ps1` 启动项目本地 Redis 兼容服务。
+2. 启动后端：进入 `backend`，Windows 执行 `.\mvnw.cmd spring-boot:run`，macOS/Linux 执行 `./mvnw spring-boot:run`。
+3. 启动前端：进入 `frontend`，首次运行执行 `npm install`，然后执行 `npm run dev`。
 
 前端默认地址为 `http://localhost:5173`，后端默认地址为 `http://localhost:8080`。
 
@@ -30,14 +76,14 @@ study/
 ## 项目检查
 
 - 前端完整检查：进入 `frontend` 后执行 `npm run check`
-- 后端测试：进入 `backend` 后执行 `./mvnw test`
+- 后端测试：进入 `backend` 后执行 `.\mvnw.cmd test`（Windows）或 `./mvnw test`（macOS/Linux）
 - 服务状态：启动后访问 `GET /api/public/status`
 
-`npm run check` 会检查 58 个重点章节的图文映射、网络与数据库教程内容，然后执行 TypeScript 类型检查和生产构建。后端测试会检查课程、资源、全部章节正文和 12 个练习科目。
+`npm run check` 会检查 58 个重点章节的图文映射、网络与数据库教程内容，然后执行 TypeScript 类型检查和生产构建。后端测试覆盖课程与练习服务、用户状态持久化、技术课与项目证据门槛，以及全部 42 条路线的阶段顺序。
 
 ## 数据存储
 
-MySQL 保存用户、课程、章节、练习、学习任务、课程进度、建站路线、作品内容、样式选择、真实发布网址、阶段完成或跳过记录、游戏成绩、社区分享、分享图片、点赞和评论，是业务数据的最终来源。Redis 缓存建站路线、游戏进度与社区信息流，并保存登录会话；缓存不可用时，核心业务仍可直接读写 MySQL。
+MySQL 保存用户、课程、章节、练习、学习任务、课程进度、建站路线、作品内容、样式选择、真实网站与 API 地址、阶段实做证据、完成或跳过记录、游戏成绩、社区分享、分享图片、点赞和评论，是业务数据的最终来源。Redis 缓存建站路线、游戏进度与社区信息流，并保存登录会话；缓存不可用时，核心业务仍可直接读写 MySQL。
 
 建站相关数据位于 `web_journey` 和 `journey_stage_progress` 表，游戏成绩位于 `user_game_progress` 表，社区文字、图片、点赞和评论分别位于 `community_post`、`community_post_image`、`community_post_like`、`community_comment` 表。旧版浏览器中的建站数据会在用户首次进入新版页面时自动迁移到 MySQL，迁移成功后清理旧数据。浏览器只保留登录令牌，实际会话状态仍由服务端 Redis 管理。
 
@@ -59,7 +105,8 @@ MySQL 保存用户、课程、章节、练习、学习任务、课程进度、�
 - `PUT /api/journey`：保存网站主题与前端、后端、数据库路线
 - `PUT /api/journey/first-page`：保存第一个页面的内容
 - `PUT /api/journey/style`：保存作品的视觉样式
-- `PUT /api/journey/deployment`：保存已经实际发布并完成访客检查的网站地址
+- `PUT /api/journey/deployment`：保存实际发布的网站地址；全栈路线同时保存公开 API 健康地址
+- `PUT /api/journey/stages/{stageId}/evidence`：保存技术应用或访客反馈的项目证据
 - `POST /api/journey/stages/{stageId}/complete`：完成建站阶段并刷新缓存
 - `POST /api/journey/stages/{stageId}/skip`：把已掌握的阶段标记为跳过并继续路线
 - `GET /api/games/progress`：读取累计游戏分数和已完成挑战
