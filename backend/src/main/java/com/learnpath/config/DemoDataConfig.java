@@ -50,21 +50,15 @@ public class DemoDataConfig {
         return args -> {
             if (userRepository.count() == 0) {
                 userRepository.save(new User("20240001", passwordEncoder.encode("123456"), "林知夏", UserRole.STUDENT));
-                userRepository.save(new User("T10001", passwordEncoder.encode("123456"), "陈老师", UserRole.TEACHER));
                 userRepository.save(new User("admin", passwordEncoder.encode("123456"), "系统管理员", UserRole.ADMIN));
             }
 
             if (communityPostRepository.count() == 0) {
                 User student = userRepository.findByAccountAndRole("20240001", UserRole.STUDENT).orElseThrow();
-                User teacher = userRepository.findByAccountAndRole("T10001", UserRole.TEACHER).orElseThrow();
                 communityPostRepository.save(new CommunityPost(student.getId(), student.getDisplayName(), student.getRole().name(),
                         CommunityPostType.JOURNEY, "我的首页终于不再是一张白纸",
                         "今天把名字、兴趣和第一张作品卡片放进了页面。原来先做出一个小结果，再回头理解标签，会比只背概念轻松很多。",
                         null, "Vue 3 · Spring Boot · MySQL"));
-                communityPostRepository.save(new CommunityPost(teacher.getId(), teacher.getDisplayName(), teacher.getRole().name(),
-                        CommunityPostType.JOURNEY, "给第一次建站的同学一个小建议",
-                        "每完成一站就保存一次代码，并写下这次解决的问题。等网站上线时，这些记录就是最真实的项目介绍。",
-                        null, "课程导师 · 项目陪跑"));
                 communityPostRepository.save(new CommunityPost(student.getId(), student.getDisplayName(), student.getRole().name(),
                         CommunityPostType.WEBSITE, "知途学习平台完成第一版",
                         "我把做出第一个网站的学习路线、课程和趣味闯关整理进了同一个项目。接下来想继续丰富社区，让更多同学展示作品。",

@@ -2,6 +2,7 @@ package com.learnpath.auth;
 
 import com.learnpath.user.User;
 import com.learnpath.user.UserRepository;
+import com.learnpath.user.UserRole;
 import com.learnpath.auth.session.SessionStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -35,6 +36,9 @@ public class AuthService {
     }
 
     public LoginResponse login(LoginRequest request) {
+        if (request.role() == UserRole.TEACHER) {
+            throw new IllegalArgumentException("账号、密码或登录身份不正确");
+        }
         User user = userRepository.findByAccountAndRole(request.account().trim(), request.role())
                 .filter(User::isEnabled)
                 .orElseThrow(() -> new IllegalArgumentException("账号、密码或登录身份不正确"));
