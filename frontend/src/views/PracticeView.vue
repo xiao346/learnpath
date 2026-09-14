@@ -13,14 +13,33 @@ const error = ref('')
 const sessionCorrect = ref(0)
 const finished = ref(false)
 const activeSubject = ref('全部')
+const roundNumber = ref(0)
+const roundSize = 12
 
 const subjects = computed(() => ['全部', ...new Set(questions.value.map((question) => question.subject))])
 const subjectCount = (subject: string) => subject === '全部'
   ? questions.value.length
   : questions.value.filter((question) => question.subject === subject).length
-const filteredQuestions = computed(() => activeSubject.value === '全部'
-  ? questions.value
-  : questions.value.filter((question) => question.subject === activeSubject.value))
+const availableQuestions = computed(() => {
+  if (activeSubject.value !== '全部') return questions.value.filter((question) => question.subject === activeSubject.value)
+  const buckets = new Map<string, PracticeQuestion[]>()
+  questions.value.forEach((question) => buckets.set(question.subject, [...(buckets.get(question.subject) ?? []), question]))
+  const mixed: PracticeQuestion[] = []
+  while ([...buckets.values()].some((bucket) => bucket.length)) {
+    buckets.forEach((bucket) => {
+      const next = bucket.shift()
+      if (next) mixed.push(next)
+    })
+  }
+  return mixed
+})
+const totalRounds = computed(() => Math.max(1, Math.ceil(availableQuestions.value.length / roundSize)))
+const filteredQuestions = computed(() => {
+  if (availableQuestions.value.length <= roundSize) return availableQuestions.value
+  const start = (roundNumber.value * roundSize) % availableQuestions.value.length
+  return Array.from({ length: Math.min(roundSize, availableQuestions.value.length) }, (_, index) =>
+    availableQuestions.value[(start + index) % availableQuestions.value.length])
+})
 const currentQuestion = computed(() => filteredQuestions.value[currentIndex.value])
 const progressPercent = computed(() => filteredQuestions.value.length
   ? Math.round(((currentIndex.value + (result.value ? 1 : 0)) / filteredQuestions.value.length) * 100)
@@ -74,6 +93,7 @@ function nextQuestion() {
 
 function selectSubject(subject: string) {
   activeSubject.value = subject
+  roundNumber.value = 0
   restart()
 }
 
@@ -84,6 +104,11 @@ function restart() {
   sessionCorrect.value = 0
   finished.value = false
   error.value = ''
+}
+
+function nextRound() {
+  roundNumber.value = (roundNumber.value + 1) % totalRounds.value
+  restart()
 }
 
 function optionState(key: string) {
@@ -104,7 +129,7 @@ onMounted(loadPractice)
       <div>
         <span class="eyebrow"><i></i> FOCUS TRAINING</span>
         <h2>在线练习舱</h2>
-        <p>即时判分、逐题解析，让每一次作答都成为清晰可见的进步。</p>
+        <p>从完整题库抽取 12 题组成一轮，即时判分并逐题讲清原因。</p>
       </div>
       <div class="practice-stats">
         <div><strong>{{ stats.totalAnswered }}</strong><span>累计答题</span></div>
@@ -116,6 +141,7 @@ onMounted(loadPractice)
     <nav v-if="questions.length" class="subject-filter glass-card" aria-label="练习科目">
       <button v-for="subject in subjects" :key="subject" type="button" :class="{ active: activeSubject === subject }" @click="selectSubject(subject)">{{ subject }} <span>{{ subjectCount(subject) }}</span></button>
     </nav>
+    <div v-if="questions.length" class="practice-round-note"><span>当前：{{ activeSubject }} · 本轮 {{ filteredQuestions.length }} 题</span><em>题库共 {{ availableQuestions.length }} 题<span v-if="totalRounds > 1"> · 第 {{ roundNumber + 1 }} / {{ totalRounds }} 组</span></em></div>
 
     <div v-if="loading" class="state-card glass-card"><span class="loader"></span><p>正在准备今日练习…</p></div>
     <div v-else-if="error && !questions.length" class="state-card glass-card"><strong>练习舱暂时无法启动</strong><p>{{ error }}</p><button @click="loadPractice">重新加载</button></div>
@@ -126,7 +152,7 @@ onMounted(loadPractice)
       <span class="eyebrow"><i></i> TRAINING COMPLETE</span>
       <h3>本轮练习完成</h3>
       <p>{{ sessionCorrect === filteredQuestions.length ? '全对！你的知识网络非常稳固。' : '解析已经记录，趁热再来一轮巩固薄弱点吧。' }}</p>
-      <button @click="restart">重新练习</button>
+      <div class="practice-summary-actions"><button @click="restart">重练本组</button><button v-if="totalRounds > 1" @click="nextRound">换一组题 →</button></div>
     </section>
 
     <div v-else class="practice-layout">

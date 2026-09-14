@@ -3,12 +3,12 @@ import { computed, onMounted, ref } from 'vue'
 import { completeGameChallenge, loadGameProgress } from '../services/games'
 
 type GameId = 'layout' | 'repair' | 'circuit' | 'quiz'
-type Alignment = 'flex-start' | 'center' | 'space-between' | 'flex-end'
+type Alignment = 'flex-start' | 'center' | 'space-between' | 'space-around' | 'space-evenly' | 'flex-end'
 
 const activeGame = ref<GameId>('layout')
 const score = ref(0)
 const completedChallengeCount = ref(0)
-const totalChallenges = ref(21)
+const totalChallenges = ref(42)
 const awardedChallenges = new Set<string>()
 const savingChallenge = ref(false)
 const gameError = ref('')
@@ -27,11 +27,16 @@ const layoutTargets: { value: Alignment; label: string; hint: string }[] = [
   { value: 'center', label: '挤到中间', hint: '让三个小伙伴在容器中央集合。' },
   { value: 'space-between', label: '分散站开', hint: '第一个靠左，最后一个靠右，中间均匀分布。' },
   { value: 'flex-end', label: '站到右边', hint: '让它们一起移动到容器右侧。' },
+  { value: 'flex-start', label: '回到起点', hint: '让三个小伙伴紧贴容器左侧排队。' },
+  { value: 'space-around', label: '留出环绕空隙', hint: '每个小伙伴左右都要有相同大小的空隙。' },
+  { value: 'space-evenly', label: '所有间隔一样宽', hint: '元素之间和容器两端的距离都保持一致。' },
 ]
 const layoutOptions: { value: Alignment; label: string }[] = [
   { value: 'flex-start', label: 'flex-start' },
   { value: 'center', label: 'center' },
   { value: 'space-between', label: 'space-between' },
+  { value: 'space-around', label: 'space-around' },
+  { value: 'space-evenly', label: 'space-evenly' },
   { value: 'flex-end', label: 'flex-end' },
 ]
 const layoutLevel = ref(0)
@@ -42,6 +47,7 @@ const layoutTarget = computed(() => layoutTargets[layoutLevel.value])
 
 const repairChallenges = [
   {
+    scene: 'card',
     title: '卡片冲出了手机屏幕',
     clue: '这张卡片写死了 480px 宽度，小屏幕只有 320px。',
     broken: 'width: 480px;',
@@ -50,6 +56,7 @@ const repairChallenges = [
     success: '卡片会在宽屏保持自然宽度，在小屏时缩到容器以内。',
   },
   {
+    scene: 'photo',
     title: '照片被拉成了长脸',
     clue: '图片被塞进固定大小的封面，但没有规定如何裁切。',
     broken: 'width: 100%; height: 180px;',
@@ -58,12 +65,40 @@ const repairChallenges = [
     success: 'cover 会保持图片比例，再裁掉超出封面的部分。',
   },
   {
+    scene: 'buttons',
     title: '按钮们在窄屏打架',
     clue: '一行放不下所有按钮，需要允许它们换到下一行。',
     broken: 'display: flex;',
     correct: 'flex-wrap: wrap;',
     options: ['flex-wrap: wrap;', 'opacity: 0;', 'position: fixed;'],
     success: '空间不足时，按钮会自动换行，不再互相挤压。',
+  },
+  {
+    scene: 'text',
+    title: '长链接撑破了内容区',
+    clue: '文章里出现了一段没有空格的超长网址，浏览器找不到自然换行点。',
+    broken: 'overflow-wrap: normal;',
+    correct: 'overflow-wrap: anywhere;',
+    options: ['overflow-wrap: anywhere;', 'font-size: 80px;', 'position: fixed;'],
+    success: 'anywhere 允许长链接在必要位置断行，页面不会再产生横向滚动。',
+  },
+  {
+    scene: 'field-demo',
+    title: '输入框比容器还宽',
+    clue: '输入框已经是 100% 宽，又额外增加了内边距和边框。',
+    broken: 'width: 100%; padding: 16px;',
+    correct: 'box-sizing: border-box;',
+    options: ['box-sizing: border-box;', 'white-space: nowrap;', 'z-index: 9999;'],
+    success: 'border-box 会把内边距和边框算进 100% 宽度，输入框重新回到容器内。',
+  },
+  {
+    scene: 'focus-demo',
+    title: '键盘用户看不见焦点',
+    clue: '按钮移除了默认轮廓，却没有提供新的键盘焦点样式。',
+    broken: 'outline: none;',
+    correct: ':focus-visible { outline: 3px solid; }',
+    options: [':focus-visible { outline: 3px solid; }', 'cursor: none;', 'opacity: .2;'],
+    success: 'focus-visible 会在键盘操作时给出清楚提示，同时不干扰普通鼠标点击。',
   },
 ]
 const repairLevel = ref(0)
@@ -100,6 +135,33 @@ const circuitChallenges = [
     closing: '})',
     success: '默认提交刷新被阻止，现在可以先用 JavaScript 处理表单。',
   },
+  {
+    title: '接口结果还不能直接使用',
+    before: "const response = await fetch('/api/projects')",
+    after: 'render(projects)',
+    correct: 'const projects = await response.json()',
+    options: ['const projects = await response.json()', 'const projects = response.css', 'response.reload()'],
+    closing: '',
+    success: 'response.json() 会异步读取并解析 JSON 响应体，页面终于拿到了项目数据。',
+  },
+  {
+    title: '精选作品没有筛选出来',
+    before: 'const projects = loadProjects()',
+    after: 'render(featured)',
+    correct: 'const featured = projects.filter(item => item.featured)',
+    options: ['const featured = projects.filter(item => item.featured)', 'const featured = projects.clear()', 'projects = false'],
+    closing: '',
+    success: 'filter 会生成只包含 featured 项目的新数组，并保留原数组。',
+  },
+  {
+    title: '状态文字没有显示',
+    before: "const status = document.querySelector('.status')",
+    after: '',
+    correct: "status.textContent = '发布成功'",
+    options: ["status.textContent = '发布成功'", "status.query = '发布成功'", 'status.remove()'],
+    closing: '',
+    success: 'textContent 会把普通文字安全地写入元素，状态提示已经亮起。',
+  },
 ]
 const circuitLevel = ref(0)
 const circuitChoice = ref('')
@@ -120,6 +182,18 @@ const courseQuizChallenges = [
   { course: 'Python 数据分析', icon: 'Pd', question: '要在 Python 中处理带行和列的二维表格，Pandas 最常用哪个结构？', options: ['DataFrame', 'Set', 'String'], correct: 'DataFrame', explanation: 'DataFrame 用行列组织数据，适合筛选、统计和清洗表格。' },
   { course: '人工智能导论', icon: 'AI', question: '用已经标注“猫/狗”的图片训练分类器，这属于哪种学习方式？', options: ['监督学习', '随机排序', '网页布局'], correct: '监督学习', explanation: '监督学习从带有正确答案的样本中学习输入与标签的关系。' },
   { course: '大学英语', icon: 'A+', question: '向访客介绍自己的网站目标，哪一句表达最清楚？', options: ['This website helps students share campus stories.', 'Website very good.', 'I am website.'], correct: 'This website helps students share campus stories.', explanation: '完整句子说明了网站做什么以及帮助谁，适合作品介绍。' },
+  { course: 'HTML 与 CSS', icon: '</>', question: '想让手机端的两列卡片自动变成一列，最适合使用什么？', options: ['媒体查询', '加粗文字', '删除 viewport'], correct: '媒体查询', explanation: '媒体查询能根据屏幕宽度切换网格列数，是响应式设计的基础工具。' },
+  { course: 'JavaScript', icon: 'JS', question: '从接口拿到 Response 后，要读取 JSON 数据通常继续调用什么？', options: ['response.json()', 'response.color()', 'response.mount()'], correct: 'response.json()', explanation: 'fetch 先返回 Response，response.json() 才会读取并解析 JSON 响应体。' },
+  { course: 'Vue 3', icon: 'V', question: '父组件要把作品标题传给子组件，应该使用什么？', options: ['Props', 'CSS import', 'Router redirect'], correct: 'Props', explanation: 'Props 用于建立从父组件到子组件的单向数据传递。' },
+  { course: 'Java Web', icon: 'J', question: '控制器接收 JSON 并转换成 Java 对象，常用哪个注解？', options: ['@RequestBody', '@Entity', '@ValueOnly'], correct: '@RequestBody', explanation: '@RequestBody 会读取并反序列化 HTTP 请求体。' },
+  { course: 'FastAPI', icon: 'Py', question: '多个接口都要读取当前用户，哪种机制适合复用这段逻辑？', options: ['Depends', 'CSS Grid', 'git stash'], correct: 'Depends', explanation: 'Depends 是 FastAPI 的依赖注入机制，适合复用认证和数据库会话等逻辑。' },
+  { course: '数据库原理', icon: 'DB', question: '保存文章和标签的多个写操作必须一起成功或回滚，应该使用什么？', options: ['事务', '图片懒加载', '媒体查询'], correct: '事务', explanation: '事务能把相关写操作作为一个整体提交，失败时统一回滚。' },
+  { course: '计算机网络', icon: '⌁', question: '网站启用 HTTPS 后，主要多了哪一层保护？', options: ['TLS 加密与身份验证', 'Flex 排版', '数据库索引'], correct: 'TLS 加密与身份验证', explanation: 'HTTPS 在 HTTP 下使用 TLS，保护传输内容并验证服务器身份。' },
+  { course: '数据结构与算法', icon: '⌘', question: '编辑器的撤销操作最贴近哪种数据结构？', options: ['栈', '队列', '图'], correct: '栈', explanation: '撤销通常先取回最后一次操作，符合后进先出的栈结构。' },
+  { course: '软件工程与 Git', icon: 'Git', question: '开发新功能时想与稳定代码隔离，最适合先创建什么？', options: ['功能分支', '数据库主键', 'CSS 类名'], correct: '功能分支', explanation: '功能分支让开发过程与稳定分支分离，完成评审后再合并。' },
+  { course: 'Python 数据分析', icon: 'Pd', question: '要从 DataFrame 中选出 score 大于 80 的行，核心做法是什么？', options: ['布尔筛选', '删除所有列', '把文件改名'], correct: '布尔筛选', explanation: '用 df[df["score"] > 80] 这类布尔条件可以筛选符合要求的行。' },
+  { course: '人工智能导论', icon: 'AI', question: '训练集表现很好但新数据表现明显变差，通常发生了什么？', options: ['过拟合', '网页重定向', '数据加密'], correct: '过拟合', explanation: '模型过度记住训练数据细节时，往往难以泛化到未见样本。' },
+  { course: '大学英语', icon: 'A+', question: '要表达“然而，结果并不一致”，哪个开头最合适？', options: ['However,', 'For example,', 'Therefore always,'], correct: 'However,', explanation: 'However 用于引出转折内容，能清楚连接前后相反的信息。' },
 ]
 const quizLevel = ref(0)
 const quizChoice = ref('')
@@ -128,10 +202,10 @@ const quizSolved = ref(false)
 const quizTarget = computed(() => courseQuizChallenges[quizLevel.value])
 
 const gameMeta = [
-  { id: 'layout' as GameId, icon: '▦', title: '布局拼拼乐', description: '用 Flex 把元素送到正确位置' },
-  { id: 'repair' as GameId, icon: '⌁', title: '样式修理铺', description: '找出让页面变形的 CSS' },
-  { id: 'circuit' as GameId, icon: '⚡', title: '按钮机关屋', description: '补上代码，让交互重新工作' },
-  { id: 'quiz' as GameId, icon: '✦', title: '课程闪答', description: '12 门课程各来一道小挑战' },
+  { id: 'layout' as GameId, icon: '▦', title: '布局拼拼乐', description: '6 关 Flex 位置训练' },
+  { id: 'repair' as GameId, icon: '⌁', title: '样式修理铺', description: '6 张真实页面故障工单' },
+  { id: 'circuit' as GameId, icon: '⚡', title: '按钮机关屋', description: '6 关 JavaScript 交互接线' },
+  { id: 'quiz' as GameId, icon: '✦', title: '课程闪答', description: '12 门课程，共 24 道挑战' },
 ]
 
 function selectLayout(value: Alignment) {
@@ -272,7 +346,7 @@ onMounted(async () => {
       <section v-else-if="activeGame === 'repair'" class="active-game glass-card">
         <div class="game-topline"><div><span>CSS 急诊室 · 第 {{ repairLevel + 1 }} / {{ repairChallenges.length }} 关</span><h3>样式修理铺</h3></div><em>每题 +120 XP</em></div>
         <div class="repair-scene">
-          <div class="broken-phone"><span>320px 手机屏幕</span><div :class="{ fixed: repairSolved, photo: repairLevel === 1, buttons: repairLevel === 2 }"><template v-if="repairLevel === 0"><strong>我的作品卡片</strong><p>修好后，我就不会冲出屏幕了。</p></template><template v-else-if="repairLevel === 1"><i>IMG</i><small>{{ repairSolved ? '比例恢复正常' : '照片变形了' }}</small></template><template v-else><button>首页</button><button>作品</button><button>关于</button><button>联系</button></template></div></div>
+          <div class="broken-phone"><span>320px 手机屏幕</span><div :class="[repairTarget.scene, { fixed: repairSolved }]"><template v-if="repairTarget.scene === 'card'"><strong>我的作品卡片</strong><p>修好后，我就不会冲出屏幕了。</p></template><template v-else-if="repairTarget.scene === 'photo'"><i>IMG</i><small>{{ repairSolved ? '比例恢复正常' : '照片变形了' }}</small></template><template v-else-if="repairTarget.scene === 'buttons'"><button>首页</button><button>作品</button><button>关于</button><button>联系</button></template><template v-else-if="repairTarget.scene === 'text'"><strong>项目地址</strong><p>https://portfolio.example.com/projects/my-first-responsive-website</p></template><template v-else-if="repairTarget.scene === 'field-demo'"><label>作品标题<input value="我的第一个网站" readonly /></label></template><template v-else><button class="focus-preview">查看作品</button><small>{{ repairSolved ? '键盘焦点清晰可见' : '焦点在哪里？' }}</small></template></div></div>
           <div class="repair-brief"><span>故障报告</span><h4>{{ repairTarget.title }}</h4><p>{{ repairTarget.clue }}</p><code>{{ repairTarget.broken }}</code></div>
         </div>
         <div class="repair-options"><span>选择一条修复代码</span><button v-for="option in repairTarget.options" :key="option" type="button" :class="{ selected: repairChoice === option, correct: repairSolved && option === repairTarget.correct }" @click="repairChoice = option; repairFeedback = ''; repairSolved = false"><code>{{ option }}</code></button></div>

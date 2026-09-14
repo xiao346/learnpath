@@ -76,7 +76,7 @@ class UserStatePersistenceTests {
 
         assertThat(view.totalScore()).isEqualTo(100);
         assertThat(view.completedChallenges()).containsExactly("layout-0");
-        assertThat(view.totalChallenges()).isEqualTo(21);
+        assertThat(view.totalChallenges()).isEqualTo(42);
     }
 
     @Test

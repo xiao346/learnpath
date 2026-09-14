@@ -17,6 +17,7 @@ import com.learnpath.dashboard.StudyTask;
 import com.learnpath.dashboard.StudyTaskRepository;
 import com.learnpath.practice.PracticeQuestion;
 import com.learnpath.practice.ExpandedQuestionCatalog;
+import com.learnpath.practice.MorePracticeQuestionCatalog;
 import com.learnpath.practice.PracticeQuestionRepository;
 import com.learnpath.practice.WebPracticeQuestionCatalog;
 import com.learnpath.user.User;
@@ -259,6 +260,7 @@ public class DemoDataConfig {
             seedAdditionalQuestions(questionRepository);
             seedExpandedQuestions(questionRepository);
             WebPracticeQuestionCatalog.questions().forEach(question -> addQuestion(questionRepository, question));
+            MorePracticeQuestionCatalog.questions().forEach(question -> addQuestion(questionRepository, question));
 
             User student = userRepository.findByAccountAndRole("20240001", UserRole.STUDENT).orElseThrow();
             progressRepository.findByUserIdAndCourseId(student.getId(), htmlCss.getId())

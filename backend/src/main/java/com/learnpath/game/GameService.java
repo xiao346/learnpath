@@ -57,15 +57,15 @@ public class GameService {
     }
 
     private String cacheKey(Long userId) {
-        return "games:v2:" + userId;
+        return "games:v3:" + userId;
     }
 
     private static Map<String, Integer> rewards() {
         Map<String, Integer> rewards = new LinkedHashMap<>();
-        for (int index = 0; index < 3; index++) rewards.put("layout-" + index, 100);
-        for (int index = 0; index < 3; index++) rewards.put("repair-" + index, 120);
-        for (int index = 0; index < 3; index++) rewards.put("circuit-" + index, 150);
-        for (int index = 0; index < 12; index++) rewards.put("quiz-" + index, 100);
+        for (int index = 0; index < 6; index++) rewards.put("layout-" + index, 100);
+        for (int index = 0; index < 6; index++) rewards.put("repair-" + index, 120);
+        for (int index = 0; index < 6; index++) rewards.put("circuit-" + index, 150);
+        for (int index = 0; index < 24; index++) rewards.put("quiz-" + index, 100);
         return Map.copyOf(rewards);
     }
 }
