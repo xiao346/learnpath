@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import StageCompass from '../components/StageCompass.vue'
 import { computed, onMounted, ref } from 'vue'
 import { completeJourneyStage, defaultJourney, loadJourney, saveJourneyDeployment, type JourneyData } from '../services/journey'
 
@@ -96,6 +97,7 @@ onMounted(async () => {
         <div><span class="lesson-kicker">发布站 · 从本地到互联网 · 预计 60–90 分钟</span><h2>把完整版本发给朋友看看</h2><p>{{ hasBackend ? '这一站会发布前端、后端与数据连接，并验证线上完整功能。' : '先通过模拟器看懂发布步骤，再把自己的静态网站真正发布。' }}最后用另一个设备检查网址。</p></div>
       <div class="lesson-win"><small>这一站的成果</small><strong>{{ hasBackend ? '一套真正连通的线上网站与接口' : '一个真实可以打开的网址' }}</strong><span>Git · Build · Hosting{{ hasBackend ? ' · API' : '' }}</span></div>
     </header>
+    <StageCompass :config="journey" stage="publish" />
 
     <section class="lesson-agenda glass-card" aria-label="本阶段学习任务">
       <div><span>本阶段路线</span><h3>从可靠版本到真实网址</h3></div>

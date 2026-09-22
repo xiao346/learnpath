@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import StageCompass from '../components/StageCompass.vue'
 import { computed, onMounted, ref } from 'vue'
 import { completeJourneyStage, loadJourney, saveJourneyStyle, type FirstPageData, type StyleData } from '../services/journey'
 
@@ -181,6 +182,7 @@ onMounted(async () => {
         <div><span class="lesson-kicker">第 02 站 · CSS 造型室 · 预计 90 分钟</span><h2>给网站换件衣服</h2><p>从文字层级、盒模型到手机适配，完成三组实验，再把生成的 CSS 写回自己的项目。</p></div>
         <div class="lesson-win"><small>这一站的成果</small><strong>一套自己的{{ projectBrief.section }}样式</strong><span>选择器 · 属性 · 盒模型</span></div>
       </header>
+      <StageCompass :config="{ project }" :stage="stage" />
 
       <section class="lesson-agenda glass-card" aria-label="本阶段学习任务">
         <div><span>本阶段路线</span><h3>3 组样式实验 + 1 次本地实做</h3></div>
@@ -241,6 +243,7 @@ onMounted(async () => {
         <div><span class="lesson-kicker">第 03 站 · JavaScript 机关室 · 预计 2 小时</span><h2>让按钮真的有反应</h2><p>先拆开“点击—状态—更新”的完整过程，再亲手触发、编写和调试三个交互，最后写回自己的页面。</p></div>
         <div class="lesson-win"><small>这一站的成果</small><strong>{{ projectBrief.interactionResult }}</strong><span>事件 · 状态 · DOM</span></div>
       </header>
+      <StageCompass :config="{ project }" :stage="stage" />
 
       <section class="lesson-agenda glass-card" aria-label="本阶段学习任务">
         <div><span>本阶段路线</span><h3>3 个交互实验 + 1 次本地实做</h3></div>

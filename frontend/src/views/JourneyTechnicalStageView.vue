@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import StageCompass from '../components/StageCompass.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { api, type CourseSummary } from '../services/api'
@@ -155,6 +156,7 @@ onMounted(async () => {
     <div v-else-if="!stageIncluded" class="state-card glass-card"><strong>当前路线不需要这一站</strong><p>原生路线不需要 Vue 迁移；静态路线也不需要后端和数据库。路线会自动跳过不适用的技术。</p><RouterLink to="/courses">查看当前路线</RouterLink></div>
     <template v-else>
       <header class="first-lesson-header glass-card"><div><span class="lesson-kicker">{{ stageContent.kicker }} · 课程学习 + 项目实做</span><h2>{{ stageContent.title }}</h2><p>{{ planStep?.description }}完成课程只是准备，只有把知识应用到正在制作的网站，这一站才算完成。</p></div><div class="lesson-win"><small>这一站的成果</small><strong>{{ stageContent.outcome }}</strong><span>{{ stageContent.concepts.join(' · ') }}</span></div></header>
+      <StageCompass :config="journey" :stage="stageId" />
 
       <section class="lesson-agenda glass-card" aria-label="本阶段学习任务"><div><span>本阶段闭环</span><h3>学习、应用、验证、记录</h3></div><ol><li><i>1</i><span><b>完成课程</b><small>按章节补齐必要知识</small></span></li><li><i>2</i><span><b>修改项目</b><small>在同一个网站继续开发</small></span></li><li><i>3</i><span><b>边界验证</b><small>增加数据或制造失败情况</small></span></li><li><i>4</i><span><b>留下证据</b><small>记录改动与验证结果</small></span></li></ol></section>
 

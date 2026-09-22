@@ -15,14 +15,6 @@ const greeting = computed(() => {
   return hour < 11 ? '早上好' : hour < 14 ? '中午好' : hour < 18 ? '下午好' : '晚上好'
 })
 async function logout() { await auth.logout(); await router.replace('/login') }
-const goalPercent = computed(() => dashboard.data?.weeklyGoalPercent ?? 0)
-const goalRemaining = computed(() => {
-  const minutes = dashboard.data?.weeklyRemainingMinutes ?? 0
-  if (minutes <= 0) return '本周学习目标已完成'
-  const hours = Math.floor(minutes / 60)
-  const rest = minutes % 60
-  return `再学习 ${hours ? `${hours} 小时 ` : ''}${rest ? `${rest} 分钟` : ''}即可完成`
-})
 const remainingTasks = computed(() => Math.max(0, (dashboard.data?.totalTasks ?? 0) - (dashboard.data?.tasksCompleted ?? 0)))
 onMounted(() => dashboard.load())
 </script>
@@ -40,7 +32,7 @@ onMounted(() => dashboard.load())
         <RouterLink class="nav-item" active-class="active" to="/games"><span>◎</span>趣味闯关</RouterLink>
         <RouterLink class="nav-item" active-class="active" to="/community"><span>♧</span>建站社区</RouterLink>
       </nav>
-      <div class="sidebar-progress"><div><span>本周目标</span><strong>{{ goalPercent }}%</strong></div><div class="progress-track"><i :style="{ width: `${goalPercent}%` }"></i></div><small>{{ goalRemaining }}</small></div>
+      <div class="sidebar-progress sidebar-start"><strong>还没找到想做的事？</strong><p>体验三个小作品，选一个愿意动手的目标。</p><RouterLink to="/courses">去建站之旅找灵感 →</RouterLink></div>
       <button class="logout-button" type="button" @click="logout">退出登录</button>
     </aside>
     <section class="dashboard-main">
@@ -50,3 +42,7 @@ onMounted(() => dashboard.load())
     <nav class="mobile-navigation" aria-label="移动端主导航"><RouterLink exact-active-class="active" to="/"><span>⌂</span>工作台</RouterLink><RouterLink active-class="active" to="/courses"><span>↗</span>建站</RouterLink><RouterLink active-class="active" to="/knowledge"><span>▤</span>工具箱</RouterLink><RouterLink active-class="active" to="/practice"><span>◇</span>练习</RouterLink><RouterLink active-class="active" to="/games"><span>◎</span>闯关</RouterLink><RouterLink active-class="active" to="/community"><span>♧</span>社区</RouterLink></nav>
   </main>
 </template>
+
+<style scoped>
+.sidebar-start > strong { font-size: 14px; color: #294b63; }.sidebar-start p { font-size: 12px; color: #5b7489; line-height: 1.8; }.sidebar-start a { color: #376c96; font-size: 12px; }
+</style>

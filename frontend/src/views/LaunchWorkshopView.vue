@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import NextDiscovery from '../components/NextDiscovery.vue'
+import StageCompass from '../components/StageCompass.vue'
 import { computed, onMounted, ref } from 'vue'
 import { completeJourneyStage, defaultJourney, loadJourney, saveJourneyStageEvidence, type JourneyData } from '../services/journey'
 
@@ -142,6 +144,7 @@ onMounted(async () => {
       <div><span class="eyebrow"><i></i> FINAL CHECK · 预计 90 分钟</span><h2>让第一个网站正式毕业</h2><p>从访客视角检查构建、内容、手机体验、{{ hasBackend ? '接口、数据与公开地址' : '链接与公开地址' }}，记录失败项并完成修复，最后整理一份能向别人介绍的作品说明。</p><div class="launch-stack"><span>{{ projectName }}</span><b>{{ stack }}</b></div></div>
       <div class="launch-score" :class="{ ready: allPassed || completed }"><small>项目健康度</small><strong>{{ healthPercent }}</strong><span>/ 100</span><i></i></div>
     </header>
+    <StageCompass v-if="!completed" :config="journey" stage="launch" />
 
     <section v-if="!completed" class="lesson-agenda glass-card" aria-label="本阶段学习任务">
       <div><span>本阶段路线</span><h3>检查、修复、复查、交付</h3></div>
@@ -172,5 +175,6 @@ onMounted(async () => {
     <section v-else class="project-graduation glass-card">
       <div class="graduation-mark">✓</div><span>FIRST WEBSITE COMPLETED</span><h2>{{ projectName }} 已完成</h2><p>你已经走完从第一行 HTML 到项目上线检查的完整路线。下一次做项目时，可以继续沿用这份检查方法。</p><div><span>技术路线</span><strong>{{ stack }}</strong></div><div class="graduation-actions"><button type="button" @click="downloadReport">下载上线检查报告</button><RouterLink :to="{ path: '/community', query: { compose: 'website', title: `${projectName}完成毕业检查`, content: '我完成了第一次完整的建站路线，也通过了上线前的项目检查。这是我的最终版本，欢迎提出建议。', url: journey.deploymentUrl ?? '' } }">把毕业作品分享到社区</RouterLink><RouterLink to="/">返回学习工作台 →</RouterLink></div>
     </section>
+    <NextDiscovery v-if="completed" />
   </section>
 </template>
